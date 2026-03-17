@@ -21,6 +21,7 @@ import Users from "./pages/admin/Users";
 import Surplus from "./pages/admin/Surplus";
 import Notifications from "./pages/admin/Notification";
 import Impact from "./pages/admin/Impact";
+import Settings from "./pages/admin/Settings";
 
 function App() {
   return (
@@ -29,10 +30,11 @@ function App() {
         <Routes>
           <Route path="/" element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
-            <Route path="users" element={<Users />} />
-            <Route path="surplus" element={<Surplus />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="impact" element={<Impact />} />
+            <Route path="/admin/users" element={<Users />} />
+            <Route path="/admin/surplus" element={<Surplus />} />
+            <Route path="/admin/notifications" element={<Notifications />} />
+            <Route path="/admin/impact" element={<Impact />} />
+            <Route path="/admin/settings" element={<Settings />} />
           </Route>
           {/* Public home page */}
           <Route path="/home" element={<Home />} />
