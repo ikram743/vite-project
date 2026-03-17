@@ -189,10 +189,7 @@ const Home: React.FC = () => {
                   notifications
                 </li>
               </ul>
-              <Link
-                to="/auth?mode=signin&type=business"
-                className="btn-outline"
-              >
+              <Link to="/auth?mode=signup&type=donor" className="btn-outline">
                 I am a business
               </Link>
             </div>
@@ -224,7 +221,7 @@ const Home: React.FC = () => {
                 </li>
               </ul>
               <Link
-                to="/auth?mode=signin&type=association"
+                to="/auth?mode=signup&type=beneficiary"
                 className="btn-primary"
               >
                 I am an association
@@ -276,11 +273,11 @@ const Home: React.FC = () => {
             today
           </p>
           <div className="cta-buttons">
-            <Link to="/auth?mode=signin&type=business" className="btn-outline">
+            <Link to="/auth?mode=signup&type=donor" className="btn-outline">
               Create a business account
             </Link>
             <Link
-              to="/auth?mode=signin&type=association"
+              to="/auth?mode=signup&type=beneficiary"
               className="btn-primary"
             >
               Create an association account
