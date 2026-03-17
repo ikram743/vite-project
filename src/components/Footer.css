@@ -1,14 +1,26 @@
 .footer {
   background: #1a1a1a;
-  color: white;
-  padding: 60px 0 30px;
+  color: #f0f0f0;
+  padding: 60px 0 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1.5fr;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 60px;
-  margin-bottom: 50px;
+  margin-bottom: 40px;
+}
+
+/* القسم الأول: معلومات المنصة (كما هي) */
+.footer-about {
+  padding-right: 20px;
 }
 
 .footer-logo {
@@ -25,18 +37,36 @@
   font-size: 28px;
 }
 
-.footer-about p {
-  color: #999;
+.project-description {
+  color: #b0b0b0;
   line-height: 1.6;
+  font-size: 15px;
+  margin: 0;
 }
 
+/* أنماط العناوين */
 .footer-links h4,
 .footer-contact h4 {
   color: white;
   font-size: 18px;
-  margin-bottom: 20px;
+  font-weight: 600;
+  margin-bottom: 25px;
+  position: relative;
 }
 
+.footer-links h4::after,
+.footer-contact h4::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  width: 40px;
+  height: 3px;
+  background: #2ecc71;
+  border-radius: 2px;
+}
+
+/* أنماط القوائم */
 .footer-links ul,
 .footer-contact ul {
   list-style: none;
@@ -44,38 +74,79 @@
 
 .footer-links li,
 .footer-contact li {
-  margin-bottom: 12px;
+  margin-bottom: 15px;
 }
 
+/* أنماط الروابط العادية */
 .footer-links a {
-  color: #999;
+  color: #b0b0b0;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
+  font-size: 15px;
+  display: inline-block;
 }
 
 .footer-links a:hover {
   color: #2ecc71;
+  transform: translateX(5px);
 }
 
+/* أنماط أزرار الروابط (للأقسام الداخلية) */
+.footer-link-btn {
+  background: none;
+  border: none;
+  color: #b0b0b0;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.footer-link-btn:hover {
+  color: #2ecc71;
+  transform: translateX(5px);
+}
+
+/* أنماط قسم الاتصال */
 .footer-contact li {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #999;
+  color: #b0b0b0;
+  font-size: 15px;
+}
+
+.footer-contact a {
+  color: #b0b0b0;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-contact a:hover {
+  color: #2ecc71;
 }
 
 .footer-contact i {
   color: #2ecc71;
   width: 20px;
+  font-size: 16px;
 }
 
+/* السطر الأخير */
 .footer-bottom {
-  text-align: center;
   padding-top: 30px;
   border-top: 1px solid #333;
-  color: #999;
+  text-align: center;
 }
 
+.footer-bottom p {
+  color: #888;
+  font-size: 14px;
+}
+
+/* التجاوب مع الشاشات المتوسطة */
 @media (max-width: 968px) {
   .footer-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -83,13 +154,63 @@
   }
 }
 
+/* التجاوب مع الجوال */
 @media (max-width: 768px) {
-  .footer-grid {
-    grid-template-columns: 1fr;
-    gap: 30px;
+  .footer {
+    padding: 40px 0 20px;
   }
 
-  .footer-bottom {
-    font-size: 14px;
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .footer-about {
+    text-align: center;
+    padding-right: 0;
+  }
+
+  .footer-logo {
+    justify-content: center;
+  }
+
+  .footer-links h4,
+  .footer-contact h4 {
+    text-align: center;
+  }
+
+  .footer-links h4::after,
+  .footer-contact h4::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .footer-links ul,
+  .footer-contact ul {
+    text-align: center;
+  }
+
+  .footer-contact li {
+    justify-content: center;
+  }
+
+  .footer-links a:hover {
+    transform: translateY(-2px);
+  }
+
+  .footer-link-btn {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .footer-link-btn:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* للشاشات الصغيرة جداً */
+@media (max-width: 480px) {
+  .footer-bottom p {
+    font-size: 12px;
   }
 }

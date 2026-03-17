@@ -1,0 +1,257 @@
+/* Surplus Page Styles */
+.surplus-page {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+}
+
+.surplus-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.surplus-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 5px;
+}
+
+.surplus-header p {
+  color: #666;
+  font-size: 14px;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 10px;
+  background: #f8f9fa;
+  padding: 5px;
+  border-radius: 10px;
+}
+
+.view-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-btn:hover {
+  color: #2ecc71;
+}
+
+.view-btn.active {
+  background: #2ecc71;
+  color: white;
+}
+
+/* Filters */
+.surplus-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  flex: 1;
+  min-width: 150px;
+  padding: 12px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #2ecc71;
+}
+
+/* Results count */
+.results-count {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.results-count span {
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-reset {
+  background: transparent;
+  border: none;
+  color: #2ecc71;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.3s ease;
+}
+
+.btn-reset:hover {
+  color: #27ae60;
+  transform: scale(1.05);
+}
+
+/* Surplus Container */
+.surplus-container {
+  margin-bottom: 30px;
+  min-height: 400px;
+}
+
+/* Grid View */
+.surplus-container.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* List View */
+.surplus-container.list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Empty Results */
+.empty-results {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8f9fa;
+  border-radius: 15px;
+  margin-bottom: 30px;
+}
+
+.empty-results i {
+  font-size: 80px;
+  color: #ccc;
+  margin-bottom: 20px;
+}
+
+.empty-results h3 {
+  font-size: 20px;
+  color: #1a1a1a;
+  margin-bottom: 10px;
+}
+
+.empty-results p {
+  color: #999;
+  margin-bottom: 20px;
+}
+
+/* Map Preview */
+.map-preview {
+  background: #f8f9fa;
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.map-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.btn-view-map {
+  background: transparent;
+  border: 2px solid #2ecc71;
+  color: #2ecc71;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.3s ease;
+}
+
+.btn-view-map:hover {
+  background: #2ecc71;
+  color: white;
+}
+
+.map-placeholder {
+  width: 100%;
+  height: 200px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.map-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .surplus-container.grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .surplus-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .filter-controls {
+    flex-direction: column;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+
+  .surplus-container.grid {
+    grid-template-columns: 1fr;
+  }
+
+  .results-count {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .map-header {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}

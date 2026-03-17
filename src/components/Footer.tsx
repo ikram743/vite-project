@@ -1,52 +1,91 @@
 import React from 'react';
-import { Link } from 'react-router-dom';  // أضف هذا
+import { Link, useLocation } from 'react-router-dom';
 import './Footer.css';
 
 const Footer: React.FC = () => {
+  const location = useLocation();
+
+  // دالة للتمرير إلى القسم المطلوب
+  const scrollToSection = (sectionId: string) => {
+    if (location.pathname === '/') {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      window.location.href = `/#${sectionId}`;
+    }
+  };
+
   return (
     <footer className="footer">
       <div className="container">
         <div className="footer-grid">
+          {/* القسم الأول: معلومات المنصة (تبقى كما هي) */}
           <div className="footer-about">
-            <Link to="/" className="footer-logo">  {/* غير <div> إلى <Link> */}
+            <div className="footer-logo">
               <i className="fas fa-leaf"></i>
               <span>FoodShare</span>
-            </Link>
-            <p>Together against food waste. A platform to redistribute surplus and create positive social impact.</p>
+            </div>
+            <p className="project-description">
+              Together against food waste. A platform to redistribute surplus and create positive social impact.
+            </p>
           </div>
 
+          {/* القسم الثاني: Quick links */}
           <div className="footer-links">
             <h4>Quick links</h4>
             <ul>
-              <li><Link to="/#how">How it works</Link></li>
-              <li><Link to="/#whom">For whom</Link></li>
-              <li><Link to="/#impact">Impact</Link></li>
-              <li><Link to="/#about">About</Link></li>
+              <li>
+                <button 
+                  onClick={() => scrollToSection('how')}
+                  className="footer-link-btn"
+                >
+                  How it works
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => scrollToSection('whom')}
+                  className="footer-link-btn"
+                >
+                  For whom
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => scrollToSection('impact')}
+                  className="footer-link-btn"
+                >
+                  Impact
+                </button>
+              </li>
             </ul>
           </div>
 
-          <div className="footer-links">
-            <h4>Legal</h4>
-            <ul>
-              <li><Link to="/terms">Terms of use</Link></li>
-              <li><Link to="/privacy">Privacy policy</Link></li>
-              <li><Link to="/legal">Legal notice</Link></li>
-              <li><Link to="/faq">FAQ</Link></li>
-            </ul>
-          </div>
-
+          {/* القسم الثالث: Contact */}
           <div className="footer-contact">
             <h4>Contact</h4>
             <ul>
-              <li><i className="fas fa-envelope"></i> contact@foodshare.dz</li>
-              <li><i className="fas fa-phone"></i> +213 12 34 56 789</li>
-              <li><i className="fas fa-map-marker-alt"></i> Algérie</li>
+              <li>
+                <i className="fas fa-envelope"></i>
+                <a href="mailto:contact@foodshare.dz">contact@foodshare.dz</a>
+              </li>
+              <li>
+                <i className="fas fa-phone"></i>
+                <a href="tel:+213123456789">+213 12 34 56 789</a>
+              </li>
+              <li>
+                <i className="fas fa-map-marker-alt"></i>
+                Algérie
+              </li>
             </ul>
           </div>
         </div>
 
+        {/* السطر الأخير */}
         <div className="footer-bottom">
-          <p>© 2026 FoodShare. All rights reserved. Developed by Boudaoud Sid Ahmed</p>
+          <p>© 2026 FoodShare. All rights reserved. Developed by us</p>
         </div>
       </div>
     </footer>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import './Navbar.css';
+import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import "./Navbar.css";
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -9,11 +9,11 @@ const Navbar: React.FC = () => {
   // دالة للتمرير إلى القسم المطلوب
   const scrollToSection = (sectionId: string) => {
     setIsMenuOpen(false);
-    
-    if (location.pathname === '/') {
+
+    if (location.pathname === "/") {
       const element = document.getElementById(sectionId);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+        element.scrollIntoView({ behavior: "smooth" });
       }
     } else {
       window.location.href = `/#${sectionId}`;
@@ -31,21 +31,21 @@ const Navbar: React.FC = () => {
           </Link>
 
           {/* الروابط في الوسط */}
-          <div className={`nav-links ${isMenuOpen ? 'active' : ''}`}>
-            <button 
-              onClick={() => scrollToSection('how')}
+          <div className={`nav-links ${isMenuOpen ? "active" : ""}`}>
+            <button
+              onClick={() => scrollToSection("how")}
               className="nav-link-btn"
             >
               How it works
             </button>
-            <button 
-              onClick={() => scrollToSection('whom')}
+            <button
+              onClick={() => scrollToSection("whom")}
               className="nav-link-btn"
             >
               For whom
             </button>
-            <button 
-              onClick={() => scrollToSection('impact')}
+            <button
+              onClick={() => scrollToSection("impact")}
               className="nav-link-btn"
             >
               Impact
@@ -57,17 +57,21 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* أزرار Sign in / Sign up في اليمين */}
-          <div className={`nav-buttons ${isMenuOpen ? 'active' : ''}`}>
-            <Link to="/login" className="nav-link">Sign in</Link>
-            <Link to="/register" className="nav-link btn-signup">Sign up</Link>
+          <div className={`nav-buttons ${isMenuOpen ? "active" : ""}`}>
+            <Link to="/auth?mode=signin" className="nav-link">
+              Sign in
+            </Link>
+            <Link to="/auth?mode=signup" className="nav-link btn-signup">
+              Sign up
+            </Link>
           </div>
 
           {/* زر القائمة للجوال */}
-          <button 
+          <button
             className="mobile-menu-btn"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
-            <i className={`fas fa-${isMenuOpen ? 'times' : 'bars'}`}></i>
+            <i className={`fas fa-${isMenuOpen ? "times" : "bars"}`}></i>
           </button>
         </div>
       </div>

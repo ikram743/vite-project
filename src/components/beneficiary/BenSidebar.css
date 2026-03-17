@@ -1,0 +1,144 @@
+/* ====== BENEFICIARY SIDEBAR ====== */
+.ben-sidebar {
+  width: 280px;
+  background: white;
+  border-radius: 20px;
+  padding: 25px 0;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+  height: fit-content;
+  position: sticky;
+  top: 90px;
+  flex-shrink: 0; /* يمنع التقلص */
+  margin-right: 0;
+  border: 1px solid #f0f0f0;
+}
+
+.sidebar-header {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #2ecc71;
+  margin-bottom: 5px;
+}
+
+.sidebar-logo i {
+  font-size: 24px;
+}
+
+.sidebar-subtitle {
+  color: #666;
+  font-size: 13px;
+  margin-left: 34px;
+}
+
+.sidebar-nav {
+  padding: 20px 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 25px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.nav-item i {
+  width: 20px;
+  font-size: 18px;
+  color: #999;
+  transition: color 0.3s ease;
+}
+
+.nav-item:hover {
+  background: #f8f9fa;
+  color: #2ecc71;
+}
+
+.nav-item:hover i {
+  color: #2ecc71;
+}
+
+.nav-item.active {
+  background: #e8f5e9;
+  color: #2ecc71;
+  border-left: 3px solid #2ecc71;
+}
+
+.nav-item.active i {
+  color: #2ecc71;
+}
+
+.sidebar-footer {
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.logout {
+  color: #e74c3c;
+}
+
+.logout:hover {
+  background: #fef5f5;
+  color: #e74c3c;
+}
+
+.logout:hover i {
+  color: #e74c3c;
+}
+
+/* للشاشات المتوسطة */
+@media (max-width: 1024px) {
+  .ben-sidebar {
+    width: 100%;
+    position: static;
+    margin-bottom: 20px;
+  }
+}
+
+/* للشاشات الصغيرة */
+@media (max-width: 768px) {
+  .ben-sidebar {
+    border-radius: 15px;
+    padding: 15px 0;
+  }
+
+  .sidebar-logo {
+    font-size: 20px;
+  }
+
+  .sidebar-logo i {
+    font-size: 22px;
+  }
+
+  .sidebar-subtitle {
+    font-size: 12px;
+    margin-left: 32px;
+  }
+
+  .nav-item {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .nav-item i {
+    font-size: 16px;
+  }
+}

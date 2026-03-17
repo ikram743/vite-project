@@ -22,10 +22,17 @@ const Hero: React.FC = () => {
           </div>
           <div className="hero-image">
             <div className="image-placeholder">
-              <i className="fas fa-hand-holding-heart"></i>
-              <Link to="/register" style={{ color: 'white', textDecoration: 'none' }}>
-                <p>S'inscrire</p>
-              </Link>
+              <img 
+                src="https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
+                alt="Food sharing" 
+                className="placeholder-image"
+              />
+              <div className="image-overlay-content">
+                <i className="fas fa-hand-holding-heart"></i>
+                <Link to="/register" className="image-link">
+                  <p>S'inscrire</p>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
