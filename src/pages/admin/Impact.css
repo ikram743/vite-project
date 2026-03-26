@@ -1,9 +1,17 @@
-/* ========== Impact Page ========== */
+/* pages/admin/Impact.css */
 .impact-page {
-  background: white;
-  border-radius: 1.5rem;
-  padding: 2rem;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .impact-header {
@@ -11,16 +19,334 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .impact-header h2 {
   color: #1e3a2f;
+  font-size: 1.5rem;
+}
+
+.date-range-selector {
+  display: flex;
+  gap: 0.5rem;
+  background: white;
+  padding: 0.25rem;
+  border-radius: 2rem;
+  border: 1px solid #e2eee8;
+}
+
+.range-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 2rem;
+  background: transparent;
+  color: #2d4a3b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.range-btn.active {
+  background: #1e3a2f;
+  color: white;
+}
+
+.range-btn:hover:not(.active) {
+  background: #f0f9f4;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #e2eee8;
+  transition: all 0.3s;
+}
+
+.metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.metric-icon {
+  width: 60px;
+  height: 60px;
+  background: #e8f3ee;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metric-icon i {
+  font-size: 1.8rem;
+  color: #3b7a5e;
+}
+
+.metric-info {
+  flex: 1;
+}
+
+.metric-info h3 {
+  color: #6b8f7c;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.metric-value {
+  color: #1e3a2f;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.metric-trend {
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.metric-trend.positive {
+  color: #2e7d32;
+}
+
+/* Chart Section */
+.chart-section {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e2eee8;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.chart-header h3 {
+  color: #1e3a2f;
+  font-size: 1.1rem;
+}
+
+.chart-select {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2eee8;
+  border-radius: 2rem;
+  background: white;
+  color: #2d4a3b;
 }
 
 .chart-container {
-  margin: 2rem 0;
-  padding: 1.5rem;
-  background: #fafdfb;
+  padding: 1rem 0;
+}
+
+.bar-chart {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 300px;
+  gap: 1rem;
+}
+
+.bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bar-label {
+  font-size: 0.8rem;
+  color: #6b8f7c;
+}
+
+.bar-wrapper {
+  width: 100%;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.bar-fill {
+  width: 100%;
+  max-width: 60px;
+  background: linear-gradient(180deg, #3b7a5e, #1e3a2f);
+  border-radius: 0.5rem 0.5rem 0 0;
+  transition: height 0.3s;
+  position: relative;
+  min-width: 40px;
+}
+
+.bar-value {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: #1e3a2f;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Comparison Section */
+.comparison-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.comparison-card {
+  background: white;
   border-radius: 1rem;
+  padding: 1.5rem;
   border: 1px solid #e2eee8;
+}
+
+.comparison-card h3 {
+  color: #1e3a2f;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ranking-table th {
+  text-align: left;
+  padding: 0.75rem 0;
+  color: #6b8f7c;
+  font-weight: 500;
+  border-bottom: 1px solid #e2eee8;
+}
+
+.ranking-table td {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2eee8;
+  color: #2d4a3b;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #e8f3ee;
+  border-radius: 50%;
+  margin-right: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3b7a5e;
+}
+
+/* Wilaya Impact */
+.wilaya-impact {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e2eee8;
+}
+
+.wilaya-impact h3 {
+  color: #1e3a2f;
+  margin-bottom: 1rem;
+}
+
+.wilaya-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.wilaya-card {
+  background: #fafdfb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wilaya-name {
+  font-weight: 600;
+  color: #1e3a2f;
+}
+
+.wilaya-stats {
+  display: flex;
+  gap: 1rem;
+}
+
+.wilaya-stats .stat {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #6b8f7c;
+}
+
+.wilaya-stats .stat i {
+  color: #5fa07e;
+}
+
+/* Export Section */
+.export-section {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .comparison-section {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .impact-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bar-chart {
+    overflow-x: auto;
+    min-width: 600px;
+  }
+
+  .wilaya-card {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
 }

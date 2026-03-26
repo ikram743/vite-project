@@ -1,66 +1,117 @@
-import React from "react";
+// pages/admin/Dashboard.tsx
+import React, { useState } from "react";
+import StatCard from "../../components/admin/StatCard";
+import ActivityList from "../../components/admin/ActivityList";
 import "./Dashboard.css";
 
 const Dashboard: React.FC = () => {
-  // In a real app, fetch data from an API
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+
+  const stats = {
+    totalDonors: 48,
+    totalBeneficiaries: 32,
+    totalSurplus: 12500,
+    totalMeals: 52300,
+  };
+
+  const recentActivities = [
+    {
+      id: 1,
+      type: "donor" as const,
+      description: "Nouveau donateur: Artisan Bakery",
+      date: "22-03-2025",
+      time: "14:30",
+      status: "completed" as const,
+    },
+    {
+      id: 2,
+      type: "surplus" as const,
+      description: "Surplus ajouté: 50 baguettes",
+      date: "22-03-2025",
+      time: "11:15",
+      status: "active" as const,
+    },
+    {
+      id: 3,
+      type: "distribution" as const,
+      description: "Distribution à Food Bank Algiers",
+      date: "21-03-2025",
+      time: "16:45",
+      status: "completed" as const,
+    },
+  ];
+
+  const pendingApprovals = [
+    {
+      id: 1,
+      name: "Boulangerie El Djazair",
+      type: "donor" as const,
+      requestDate: "22-03-2025",
+      status: "pending" as const,
+    },
+    {
+      id: 2,
+      name: "Association Aide et Partage",
+      type: "beneficiary" as const,
+      requestDate: "21-03-2025",
+      status: "pending" as const,
+    },
+  ];
+
+
   return (
-    <div className="dashboard">
-      <h2>Dashboard</h2>
-      <div className="stats-grid">
-        <div className="stat-card">
-          <i className="fas fa-store"></i>
-          <div className="stat-info">
-            <h3>Total Donors</h3>
-            <p>48</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <i className="fas fa-hand-holding-heart"></i>
-          <div className="stat-info">
-            <h3>Total Beneficiaries</h3>
-            <p>32</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <i className="fas fa-boxes"></i>
-          <div className="stat-info">
-            <h3>Active Surplus</h3>
-            <p>124</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <i className="fas fa-utensils"></i>
-          <div className="stat-info">
-            <h3>Meals Saved</h3>
-            <p>5,230</p>
-          </div>
+    <div className="dashboard-page">
+      <div className="date-selector-wrapper">
+        <div className="date-selector">
+          <i className="fas fa-calendar-alt"></i>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* Recent activity table */}
-      <div className="recent-activity">
-        <h3>Recent Activity</h3>
-        <table className="activity-table">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Action</th>
-              <th>Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Bakery Algiers</td>
-              <td>Added surplus: 20 baguettes</td>
-              <td>5 min ago</td>
-            </tr>
-            <tr>
-              <td>Food Bank Oran</td>
-              <td>Claimed surplus</td>
-              <td>15 min ago</td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="stats-container">
+        <StatCard
+          icon="fa-store"
+          title="Donateurs"
+          value={stats.totalDonors}
+          change="+4 cette semaine"
+          changeType="positive"
+        />
+        <StatCard
+          icon="fa-hand-holding-heart"
+          title="Bénéficiaires"
+          value={stats.totalBeneficiaries}
+          change="+3 cette semaine"
+          changeType="positive"
+        />
+        <StatCard
+          icon="fa-weight-hanging"
+          title="Surplus Total"
+          value={`${stats.totalSurplus.toLocaleString()} kg`}
+          change="+12% vs semaine dernière"
+          changeType="positive"
+        />
+        <StatCard
+          icon="fa-utensils"
+          title="Repas Sauvés"
+          value={stats.totalMeals.toLocaleString()}
+          change="Impact positif"
+          changeType="positive"
+        />
+      </div>
+
+      <div className="dashboard-grid">
+        <ActivityList activities={recentActivities} />
+        {/* <ApprovalList
+          approvals={pendingApprovals}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        /> */}
       </div>
     </div>
   );

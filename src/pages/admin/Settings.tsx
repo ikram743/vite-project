@@ -15,6 +15,7 @@ interface SettingsData {
   autoPublishListings: boolean;
   enableGeolocation: boolean;
   enableNotifications: boolean;
+  maxListingAge: number;
 
   // Notification Settings
   emailNotifications: boolean;
@@ -24,8 +25,6 @@ interface SettingsData {
 
   // Appearance
   primaryColor: string;
-  logo: string | null;
-  favicon: string | null;
 
   // Security
   twoFactorAuth: boolean;
@@ -38,33 +37,22 @@ const Settings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Mock data - in real app, fetch from API
   const [settings, setSettings] = useState<SettingsData>({
-    // General Settings
     siteName: "FoodShare Algeria",
-    siteDescription: "Fighting food waste, feeding communities",
+    siteDescription: "Lutter contre le gaspillage alimentaire en Algérie",
     contactEmail: "contact@foodshare.dz",
     supportPhone: "+213 555 123 456",
     address: "123 Rue Didouche Mourad, Algiers",
-
-    // Platform Settings
     requireApproval: true,
     autoPublishListings: false,
     enableGeolocation: true,
     enableNotifications: true,
-
-    // Notification Settings
+    maxListingAge: 24,
     emailNotifications: true,
     pushNotifications: false,
     dailyDigest: true,
     notificationEmail: "notifications@foodshare.dz",
-
-    // Appearance
     primaryColor: "#1e3a2f",
-    logo: null,
-    favicon: null,
-
-    // Security
     twoFactorAuth: false,
     sessionTimeout: 30,
     maxLoginAttempts: 5,
@@ -87,52 +75,33 @@ const Settings: React.FC = () => {
     setIsSaving(true);
     setSaveSuccess(false);
 
-    // Simulate API call
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log("Settings saved:", settings);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (error) {
-      console.error("Error saving settings:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // In real app, upload to server
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettings((prev) => ({ ...prev, logo: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    console.log("Settings saved:", settings);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+    setIsSaving(false);
   };
 
   const tabs = [
-    { id: "general", label: "General", icon: "fa-cog" },
-    { id: "platform", label: "Platform", icon: "fa-globe" },
+    { id: "general", label: "Général", icon: "fa-cog" },
+    { id: "platform", label: "Plateforme", icon: "fa-globe" },
     { id: "notifications", label: "Notifications", icon: "fa-bell" },
-    { id: "appearance", label: "Appearance", icon: "fa-paint-brush" },
-    { id: "security", label: "Security", icon: "fa-shield-alt" },
-    { id: "integrations", label: "Integrations", icon: "fa-plug" },
+    { id: "appearance", label: "Apparence", icon: "fa-paint-brush" },
+    { id: "security", label: "Sécurité", icon: "fa-shield-alt" },
   ];
 
   return (
     <div className="settings-page">
       <div className="settings-header">
         <div className="header-left">
-          <h2>Settings</h2>
-          <p>Manage your platform configuration and preferences</p>
+          <h2>Paramètres</h2>
+          <p>Gérez la configuration de votre plateforme</p>
         </div>
         <div className="header-actions">
           {saveSuccess && (
             <div className="save-success">
               <i className="fas fa-check-circle"></i>
-              Settings saved successfully!
+              Paramètres enregistrés !
             </div>
           )}
           <button
@@ -143,12 +112,12 @@ const Settings: React.FC = () => {
             {isSaving ? (
               <>
                 <i className="fas fa-spinner fa-spin"></i>
-                Saving...
+                Enregistrement...
               </>
             ) : (
               <>
                 <i className="fas fa-save"></i>
-                Save Changes
+                Enregistrer
               </>
             )}
           </button>
@@ -172,60 +141,55 @@ const Settings: React.FC = () => {
         {/* General Settings */}
         {activeTab === "general" && (
           <div className="settings-section">
-            <h3>General Information</h3>
+            <h3>Informations Générales</h3>
             <div className="settings-grid">
               <div className="form-group">
-                <label>Site Name</label>
+                <label>Nom du site</label>
                 <input
                   type="text"
                   name="siteName"
                   value={settings.siteName}
                   onChange={handleInputChange}
-                  placeholder="FoodShare Algeria"
                 />
               </div>
 
-              <div className="form-group">
-                <label>Site Description</label>
+              <div className="form-group full-width">
+                <label>Description du site</label>
                 <textarea
                   name="siteDescription"
                   value={settings.siteDescription}
                   onChange={handleInputChange}
                   rows={3}
-                  placeholder="Brief description of your platform"
                 />
               </div>
 
               <div className="form-group">
-                <label>Contact Email</label>
+                <label>Email de contact</label>
                 <input
                   type="email"
                   name="contactEmail"
                   value={settings.contactEmail}
                   onChange={handleInputChange}
-                  placeholder="contact@foodshare.dz"
                 />
               </div>
 
               <div className="form-group">
-                <label>Support Phone</label>
+                <label>Téléphone support</label>
                 <input
                   type="tel"
                   name="supportPhone"
                   value={settings.supportPhone}
                   onChange={handleInputChange}
-                  placeholder="+213 XXX XX XX XX"
                 />
               </div>
 
               <div className="form-group full-width">
-                <label>Address</label>
+                <label>Adresse</label>
                 <input
                   type="text"
                   name="address"
                   value={settings.address}
                   onChange={handleInputChange}
-                  placeholder="Full address"
                 />
               </div>
             </div>
@@ -235,7 +199,7 @@ const Settings: React.FC = () => {
         {/* Platform Settings */}
         {activeTab === "platform" && (
           <div className="settings-section">
-            <h3>Platform Configuration</h3>
+            <h3>Configuration de la plateforme</h3>
             <div className="settings-grid">
               <div className="form-group checkbox-group">
                 <label className="checkbox-label">
@@ -245,11 +209,10 @@ const Settings: React.FC = () => {
                     checked={settings.requireApproval}
                     onChange={handleInputChange}
                   />
-                  <span>Require admin approval for new users</span>
+                  <span>
+                    Approbation requise pour les nouveaux utilisateurs
+                  </span>
                 </label>
-                <p className="field-hint">
-                  New users must be approved before they can access the platform
-                </p>
               </div>
 
               <div className="form-group checkbox-group">
@@ -260,11 +223,8 @@ const Settings: React.FC = () => {
                     checked={settings.autoPublishListings}
                     onChange={handleInputChange}
                   />
-                  <span>Auto-publish surplus listings</span>
+                  <span>Publication automatique des surplus</span>
                 </label>
-                <p className="field-hint">
-                  Listings are published immediately without review
-                </p>
               </div>
 
               <div className="form-group checkbox-group">
@@ -275,11 +235,8 @@ const Settings: React.FC = () => {
                     checked={settings.enableGeolocation}
                     onChange={handleInputChange}
                   />
-                  <span>Enable geolocation features</span>
+                  <span>Activer la géolocalisation</span>
                 </label>
-                <p className="field-hint">
-                  Allow users to find nearby donations
-                </p>
               </div>
 
               <div className="form-group checkbox-group">
@@ -290,9 +247,20 @@ const Settings: React.FC = () => {
                     checked={settings.enableNotifications}
                     onChange={handleInputChange}
                   />
-                  <span>Enable notifications</span>
+                  <span>Activer les notifications</span>
                 </label>
-                <p className="field-hint">Send real-time alerts to users</p>
+              </div>
+
+              <div className="form-group">
+                <label>Durée maximale d'une annonce (heures)</label>
+                <input
+                  type="number"
+                  name="maxListingAge"
+                  value={settings.maxListingAge}
+                  onChange={handleInputChange}
+                  min="1"
+                  max="72"
+                />
               </div>
             </div>
           </div>
@@ -301,16 +269,15 @@ const Settings: React.FC = () => {
         {/* Notification Settings */}
         {activeTab === "notifications" && (
           <div className="settings-section">
-            <h3>Notification Preferences</h3>
+            <h3>Préférences de notifications</h3>
             <div className="settings-grid">
               <div className="form-group">
-                <label>Notification Email</label>
+                <label>Email pour notifications</label>
                 <input
                   type="email"
                   name="notificationEmail"
                   value={settings.notificationEmail}
                   onChange={handleInputChange}
-                  placeholder="notifications@foodshare.dz"
                 />
               </div>
 
@@ -322,7 +289,7 @@ const Settings: React.FC = () => {
                     checked={settings.emailNotifications}
                     onChange={handleInputChange}
                   />
-                  <span>Email notifications</span>
+                  <span>Notifications par email</span>
                 </label>
               </div>
 
@@ -334,7 +301,7 @@ const Settings: React.FC = () => {
                     checked={settings.pushNotifications}
                     onChange={handleInputChange}
                   />
-                  <span>Push notifications</span>
+                  <span>Notifications push</span>
                 </label>
               </div>
 
@@ -346,11 +313,8 @@ const Settings: React.FC = () => {
                     checked={settings.dailyDigest}
                     onChange={handleInputChange}
                   />
-                  <span>Daily digest email</span>
+                  <span>Résumé quotidien</span>
                 </label>
-                <p className="field-hint">
-                  Receive a summary of daily activity
-                </p>
               </div>
             </div>
           </div>
@@ -359,10 +323,10 @@ const Settings: React.FC = () => {
         {/* Appearance Settings */}
         {activeTab === "appearance" && (
           <div className="settings-section">
-            <h3>Appearance</h3>
+            <h3>Apparence</h3>
             <div className="settings-grid">
               <div className="form-group">
-                <label>Primary Color</label>
+                <label>Couleur principale</label>
                 <div className="color-picker-group">
                   <input
                     type="color"
@@ -375,47 +339,15 @@ const Settings: React.FC = () => {
                     name="primaryColor"
                     value={settings.primaryColor}
                     onChange={handleInputChange}
-                    placeholder="#1e3a2f"
                   />
                 </div>
               </div>
-
-              <div className="form-group">
-                <label>Site Logo</label>
-                <div className="file-upload">
-                  {settings.logo ? (
-                    <div className="logo-preview">
-                      <img src={settings.logo} alt="Logo preview" />
-                      <button
-                        type="button"
-                        className="btn-icon"
-                        onClick={() =>
-                          setSettings((prev) => ({ ...prev, logo: null }))
-                        }
-                      >
-                        <i className="fas fa-times"></i>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="upload-area">
-                      <i className="fas fa-cloud-upload-alt"></i>
-                      <p>Click to upload or drag and drop</p>
-                      <span>PNG, JPG up to 2MB</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        style={{ display: "none" }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Favicon</label>
-                <div className="file-upload">
-                  <input type="file" accept="image/x-icon,image/png" />
+              <div className="preview-box">
+                <div
+                  className="preview-text"
+                  style={{ backgroundColor: settings.primaryColor }}
+                >
+                  Aperçu de la couleur
                 </div>
               </div>
             </div>
@@ -425,7 +357,7 @@ const Settings: React.FC = () => {
         {/* Security Settings */}
         {activeTab === "security" && (
           <div className="settings-section">
-            <h3>Security</h3>
+            <h3>Sécurité</h3>
             <div className="settings-grid">
               <div className="form-group checkbox-group">
                 <label className="checkbox-label">
@@ -435,13 +367,12 @@ const Settings: React.FC = () => {
                     checked={settings.twoFactorAuth}
                     onChange={handleInputChange}
                   />
-                  <span>Enable two-factor authentication</span>
+                  <span>Authentification à deux facteurs</span>
                 </label>
-                <p className="field-hint">Require 2FA for admin accounts</p>
               </div>
 
               <div className="form-group">
-                <label>Session Timeout (minutes)</label>
+                <label>Durée de session (minutes)</label>
                 <input
                   type="number"
                   name="sessionTimeout"
@@ -453,7 +384,7 @@ const Settings: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label>Max Login Attempts</label>
+                <label>Tentatives de connexion max</label>
                 <input
                   type="number"
                   name="maxLoginAttempts"
@@ -462,53 +393,6 @@ const Settings: React.FC = () => {
                   min="3"
                   max="10"
                 />
-                <p className="field-hint">
-                  Number of failed attempts before lockout
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Integrations */}
-        {activeTab === "integrations" && (
-          <div className="settings-section">
-            <h3>Integrations</h3>
-            <div className="integrations-grid">
-              <div className="integration-card">
-                <i className="fab fa-google"></i>
-                <div className="integration-info">
-                  <h4>Google Maps</h4>
-                  <p>Enable geolocation features</p>
-                </div>
-                <button className="btn-outline">Configure</button>
-              </div>
-
-              <div className="integration-card">
-                <i className="fab fa-facebook"></i>
-                <div className="integration-info">
-                  <h4>Facebook Login</h4>
-                  <p>Allow users to sign in with Facebook</p>
-                </div>
-                <button className="btn-outline">Configure</button>
-              </div>
-
-              <div className="integration-card">
-                <i className="fas fa-envelope"></i>
-                <div className="integration-info">
-                  <h4>Email Service</h4>
-                  <p>Configure SMTP for notifications</p>
-                </div>
-                <button className="btn-outline">Configure</button>
-              </div>
-
-              <div className="integration-card">
-                <i className="fas fa-sms"></i>
-                <div className="integration-info">
-                  <h4>SMS Gateway</h4>
-                  <p>Send SMS notifications</p>
-                </div>
-                <button className="btn-outline">Configure</button>
               </div>
             </div>
           </div>
@@ -517,38 +401,25 @@ const Settings: React.FC = () => {
 
       {/* Danger Zone */}
       <div className="danger-zone">
-        <h3>Danger Zone</h3>
+        <h3>Zone de danger</h3>
         <div className="danger-actions">
           <div className="danger-action">
             <div>
-              <h4>Export Data</h4>
-              <p>Download all platform data as JSON</p>
+              <h4>Exporter les données</h4>
+              <p>Télécharger toutes les données de la plateforme</p>
             </div>
             <button className="btn-outline">
-              <i className="fas fa-download"></i>
-              Export
+              <i className="fas fa-download"></i> Exporter
             </button>
           </div>
 
           <div className="danger-action">
             <div>
-              <h4>Clear Cache</h4>
-              <p>Remove temporary data and refresh</p>
-            </div>
-            <button className="btn-outline">
-              <i className="fas fa-trash"></i>
-              Clear
-            </button>
-          </div>
-
-          <div className="danger-action">
-            <div>
-              <h4>Reset Platform</h4>
-              <p>Restore default settings (cannot be undone)</p>
+              <h4>Réinitialiser la plateforme</h4>
+              <p>Restaurer les paramètres par défaut (irréversible)</p>
             </div>
             <button className="btn-danger">
-              <i className="fas fa-exclamation-triangle"></i>
-              Reset
+              <i className="fas fa-exclamation-triangle"></i> Réinitialiser
             </button>
           </div>
         </div>

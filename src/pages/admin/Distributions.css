@@ -1,0 +1,63 @@
+/* pages/admin/Distributions.css */
+.distributions-page {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.distributions-table-container {
+  background: white;
+  border-radius: 1rem;
+  overflow-x: auto;
+  border: 1px solid #e2eee8;
+}
+
+.distributions-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.distributions-table th {
+  text-align: left;
+  padding: 1rem 1rem;
+  color: #6b8f7c;
+  font-weight: 500;
+  font-size: 0.85rem;
+  border-bottom: 2px solid #e2eee8;
+  background: #fafdfb;
+}
+
+.distributions-table td {
+  padding: 1rem 1rem;
+  border-bottom: 1px solid #e2eee8;
+  color: #2d4a3b;
+}
+
+.distributions-table tr:hover {
+  background: #fafdfb;
+}
+
+.status-completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-scheduled {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-cancelled {
+  background: #ffebee;
+  color: #c62828;
+}
