@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 /* ====== BASE STYLES ====== */
 :root {
@@ -8,6 +9,8 @@
   --text-light: #444444;
 }
 
+=======
+>>>>>>> 7d86d61045058f4c3c0bc1cc40d4de5774ce172d
 .ben-dashboard {
   min-height: 100vh;
   background: #f5f7fa;
@@ -656,4 +659,60 @@
     width: 35px;
     height: 35px;
   }
+<<<<<<< HEAD
 }
+=======
+}
+/* أزرار التنقل */
+.navigation-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 40px;
+  width: fit-content;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  border: 1px solid #eaeaea;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-btn i {
+  font-size: 13px;
+}
+
+.back-btn {
+  background: white;
+  color: #555;
+  border: 1px solid #ddd;
+}
+
+.back-btn:hover {
+  background: #f5f5f5;
+  transform: translateX(-2px);
+}
+
+.home-btn {
+  background: #2ecc71;
+  color: white;
+  border: 1px solid #27ae60;
+}
+
+.home-btn:hover {
+  background: #27ae60;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(46, 204, 113, 0.2);
+}
+>>>>>>> 7d86d61045058f4c3c0bc1cc40d4de5774ce172d

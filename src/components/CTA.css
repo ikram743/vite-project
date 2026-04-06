@@ -1,8 +1,15 @@
+/* components/CTA.css */
 .cta {
   padding: 80px 0;
   background: linear-gradient(135deg, #2ecc71, #27ae60);
   text-align: center;
   color: white;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
 .cta h2 {
@@ -24,47 +31,62 @@
   display: flex;
   gap: 20px;
   justify-content: center;
+  align-items: center;
   flex-wrap: wrap;
 }
 
-/* أنماط الروابط */
-.cta-buttons a {
-  text-decoration: none;
-  display: inline-block;
-  padding: 14px 32px;
+.btn-business-card,
+.btn-association-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 300px; /* SAME FIXED WIDTH for both */
+  padding: 14px 20px;
   border-radius: 50px;
   font-weight: 600;
   font-size: 16px;
+  text-decoration: none;
   transition: all 0.3s ease;
   cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
-.cta-buttons .btn-outline {
-  background: transparent;
-  border: 2px solid white;
+.btn-business-card {
+  background: #1e3a2f;
   color: white;
+  border: 2px solid #1e3a2f;
 }
 
-.cta-buttons .btn-outline:hover {
-  background: white;
-  color: #2ecc71;
-  transform: translateY(-2px);
+.btn-business-card:hover {
+  background: #2d5a47;
+  transform: translateY(-3px);
 }
 
-.cta-buttons .btn-primary {
-  background: white;
-  color: #2ecc71;
-  border: 2px solid white;
-}
-
-.cta-buttons .btn-primary:hover {
+.btn-association-card {
   background: transparent;
   color: white;
-  transform: translateY(-2px);
+  border: 2px solid white;
 }
 
-/* للجوال */
+.btn-association-card:hover {
+  background: white;
+  color: #1e3a2f;
+  transform: translateY(-3px);
+}
+
+.btn-business-card i,
+.btn-association-card i {
+  font-size: 1.2rem;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
+  .cta {
+    padding: 60px 20px;
+  }
+
   .cta h2 {
     font-size: 32px;
   }
@@ -75,12 +97,11 @@
 
   .cta-buttons {
     flex-direction: column;
-    align-items: center;
+    gap: 15px;
   }
 
-  .cta-buttons a {
-    width: 100%;
-    max-width: 300px;
-    text-align: center;
+  .btn-business-card,
+  .btn-association-card {
+    width: 280px;
   }
 }

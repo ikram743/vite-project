@@ -12,13 +12,14 @@ const CTA: React.FC = () => {
           today
         </p>
         <div className="cta-buttons">
-          {/* حولنا الزر لرابط مع كلاس btn-outline */}
-          <Link to="/auth?mode=signup&type=donor" className="btn-outline">
+          <Link to="/auth?mode=signup&type=donor" className="btn-business-card">
             Create a business account
           </Link>
 
-          {/* حولنا الزر لرابط مع كلاس btn-primary */}
-          <Link to="/auth?mode=signup&type=beneficiary" className="btn-primary">
+          <Link
+            to="/auth?mode=signup&type=beneficiary"
+            className="btn-association-card"
+          >
             Create an association account
           </Link>
         </div>
