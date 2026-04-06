@@ -6,7 +6,6 @@ const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
-  // دالة للتمرير إلى القسم المطلوب
   const scrollToSection = (sectionId: string) => {
     setIsMenuOpen(false);
 

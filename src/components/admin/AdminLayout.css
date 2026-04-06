@@ -1,0 +1,32 @@
+/* components/admin/AdminLayout.css */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f9f7;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+.admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.admin-content {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .admin-content {
+    padding: 1rem;
+  }
+}
