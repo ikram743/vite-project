@@ -7,7 +7,7 @@ const BenProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'stats' | 'preferences'>('profile');
   const [isEditing, setIsEditing] = useState(false);
 
-  // بيانات الملف الشخصي
+
   const [profileData, setProfileData] = useState({
     organizationName: 'Association Nour',
     organizationType: 'association',

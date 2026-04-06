@@ -13,7 +13,7 @@
   padding: 0 20px;
 }
 
-/* ====== ترتيب DASHBOARD-MAIN (بحجم طبيعي) ====== */
+
 .dashboard-main {
   display: flex;
   gap: 30px;
@@ -21,10 +21,10 @@
   max-width: 1400px;
   margin: 0 auto;
   align-items: flex-start;
-  flex-wrap: nowrap; /* يمنع الالتفاف على الشاشات الكبيرة */
-}
+  flex-wrap:nowrap;}
 
-/* الـ Sidebar عرض ثابت */
+
+
 .ben-sidebar {
   width: 280px;
   flex-shrink: 0;
@@ -38,7 +38,7 @@
   border: 1px solid #f0f0f0;
 }
 
-/* ====== أزرار التنقل - فوق وبحجم عادي ====== */
+
 .navigation-buttons {
   display: flex;
   gap: 10px;
@@ -92,7 +92,7 @@
   box-shadow: 0 4px 10px rgba(46, 204, 113, 0.2);
 }
 
-/* ====== المحتوى الرئيسي - حجم عادي ====== */
+
 .dashboard-content {
   flex: 1;
   background: white;
@@ -531,7 +531,7 @@
 /* ====== RESPONSIVE ====== */
 @media (max-width: 1024px) {
   .dashboard-main {
-    flex-wrap: wrap; /* يسمح بالالتفاف على الشاشات المتوسطة */
+    flex-wrap: wrap; 
   }
 
   .ben-sidebar {

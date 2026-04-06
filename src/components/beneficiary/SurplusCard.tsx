@@ -7,7 +7,7 @@ interface SurplusCardProps {
     id: number;
     title: string;
     donor: string;
-    distance: number;  // غيري من string إلى number
+    distance: number;  
     quantity: string;
     expiry: string;
     category: string;

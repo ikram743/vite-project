@@ -8,7 +8,7 @@ const ForgotPassword: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // هنا هتضيفي منطق إرسال إيميل استعادة كلمة السر
+  
     console.log('Reset password for:', email);
     setSubmitted(true);
   };

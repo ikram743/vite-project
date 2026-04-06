@@ -8,7 +8,7 @@
   height: fit-content;
   position: sticky;
   top: 90px;
-  flex-shrink: 0; /* يمنع التقلص */
+  flex-shrink: 0; 
   margin-right: 0;
   border: 1px solid #f0f0f0;
 }
@@ -113,7 +113,6 @@
   }
 }
 
-/* للشاشات الصغيرة */
 @media (max-width: 768px) {
   .ben-sidebar {
     border-radius: 15px;

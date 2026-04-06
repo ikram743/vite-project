@@ -53,7 +53,7 @@ const BenHistory: React.FC = () => {
         <BenSidebar />
         
         <div className="dashboard-content history-page">
-          {/* أزرار التنقل - فوق كل المحتوى */}
+          
           <div className="navigation-buttons">
             <button className="nav-btn back-btn" onClick={() => window.history.back()}>
               <i className="fas fa-arrow-left"></i> Back
