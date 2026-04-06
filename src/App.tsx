@@ -75,7 +75,7 @@ localStorage.setItem("user", JSON.stringify(mockUser));
 
 // export default App;
 
-//TO SEE THE HOME PAGE AND AUTH PAGE ..
+// TO SEE THE HOME PAGE AND AUTH PAGE ..
 
 function App() {
   return (
