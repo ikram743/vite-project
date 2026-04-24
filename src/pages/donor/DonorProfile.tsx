@@ -1,254 +1,44 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DonorHeader from '../../components/donor/DonorHeader';
 import DonorSidebar from '../../components/donor/DonorSidebar';
-import './DonorProfile.css';
+import { FaEdit, FaSave, FaTimes, FaBox, FaUsers, FaStar, FaCalendar } from 'react-icons/fa';
 
-const DonorProfile: React.FC = () => {
+const DonorProfile = () => {
   const navigate = useNavigate();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   const [profileData, setProfileData] = useState({
-    businessName: 'Artisan Bakery',
-    businessType: 'Bakery',
-    contactName: 'Ahmed Benali',
-    email: 'ahmed.benali@bakery.dz',
-    phone: '+213 555 123 456',
-    address: '123 Rue Didouche, Algiers',
-    registrationNumber: 'REG123456',
-    taxNumber: 'TAX789012',
-    joinedDate: 'January 2026',
-    totalDonations: 48,
-    totalBeneficiaries: 23,
-    rating: 4.8
+    businessName: 'Artisan Bakery', businessType: 'Bakery', contactName: 'Ahmed Benali',
+    email: 'ahmed.benali@bakery.dz', phone: '+213 555 123 456', address: '123 Rue Didouche, Algiers',
+    registrationNumber: 'REG123456', taxNumber: 'TAX789012', joinedDate: 'January 2026',
+    totalDonations: 48, totalBeneficiaries: 23, rating: 4.8
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setProfileData({
-      ...profileData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Profile updated:', profileData);
-    setIsEditing(false);
+    setProfileData({ ...profileData, [e.target.name]: e.target.value });
   };
 
   return (
-    <div className="donor-dashboard">
-      <DonorHeader />
-      <div className="dashboard-main container">
-        <DonorSidebar />
-        
-        <div className="dashboard-content">
-          {/* أزرار التنقل */}
-          <div className="navigation-buttons">
-            <button className="nav-btn back-btn" onClick={() => navigate(-1)}>
-              <i className="fas fa-arrow-left"></i> Back
-            </button>
-            <button className="nav-btn home-btn" onClick={() => navigate('/')}>
-              <i className="fas fa-home"></i> Home
-            </button>
+    <div className="flex min-h-screen bg-gray-50">
+      <DonorSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+      
+      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+        <div className="p-8">
+          <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-semibold text-gray-900">Business Profile</h1><button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"><FaEdit size={14} /> {isEditing ? 'Cancel' : 'Edit Profile'}</button></div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white rounded-xl p-4 flex items-center gap-3"><div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center"><FaBox className="text-emerald-600" /></div><div><div className="text-2xl font-bold">{profileData.totalDonations}</div><div className="text-sm text-gray-500">Total Donations</div></div></div>
+            <div className="bg-white rounded-xl p-4 flex items-center gap-3"><div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><FaUsers className="text-blue-600" /></div><div><div className="text-2xl font-bold">{profileData.totalBeneficiaries}</div><div className="text-sm text-gray-500">Beneficiaries</div></div></div>
+            <div className="bg-white rounded-xl p-4 flex items-center gap-3"><div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"><FaStar className="text-amber-600" /></div><div><div className="text-2xl font-bold">{profileData.rating}</div><div className="text-sm text-gray-500">Rating</div></div></div>
+            <div className="bg-white rounded-xl p-4 flex items-center gap-3"><div className="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center"><FaCalendar className="text-rose-600" /></div><div><div className="text-2xl font-bold">{profileData.joinedDate}</div><div className="text-sm text-gray-500">Joined</div></div></div>
           </div>
 
-          <div className="profile-header">
-            <h1>Business Profile</h1>
-            <button 
-              className="btn-edit"
-              onClick={() => setIsEditing(!isEditing)}
-            >
-              <i className={`fas fa-${isEditing ? 'times' : 'edit'}`}></i>
-              {isEditing ? ' Cancel' : ' Edit Profile'}
-            </button>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            {!isEditing ? (<><div className="mb-6"><h3 className="text-lg font-semibold mb-3">Business Information</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="text-sm text-gray-500">Business Name</label><p className="font-medium">{profileData.businessName}</p></div><div><label className="text-sm text-gray-500">Business Type</label><p className="font-medium">{profileData.businessType}</p></div><div><label className="text-sm text-gray-500">Registration Number</label><p className="font-medium">{profileData.registrationNumber}</p></div><div><label className="text-sm text-gray-500">Tax Number</label><p className="font-medium">{profileData.taxNumber}</p></div></div></div><div><h3 className="text-lg font-semibold mb-3">Contact Information</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="text-sm text-gray-500">Contact Name</label><p className="font-medium">{profileData.contactName}</p></div><div><label className="text-sm text-gray-500">Email</label><p className="font-medium">{profileData.email}</p></div><div><label className="text-sm text-gray-500">Phone</label><p className="font-medium">{profileData.phone}</p></div><div><label className="text-sm text-gray-500">Address</label><p className="font-medium">{profileData.address}</p></div></div></div></>) : (<form><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1">Business Name</label><input type="text" name="businessName" value={profileData.businessName} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Business Type</label><select name="businessType" value={profileData.businessType} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg"><option>Bakery</option><option>Restaurant</option><option>Supermarket</option></select></div><div><label className="block text-sm font-medium mb-1">Contact Name</label><input type="text" name="contactName" value={profileData.contactName} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Email</label><input type="email" name="email" value={profileData.email} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Phone</label><input type="tel" name="phone" value={profileData.phone} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Address</label><input type="text" name="address" value={profileData.address} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" /></div></div><div className="flex gap-3 mt-6"><button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-50"><FaTimes className="inline mr-1" /> Cancel</button><button type="submit" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"><FaSave className="inline mr-1" /> Save Changes</button></div></form>)}
           </div>
-
-          {/* إحصائيات سريعة */}
-          <div className="profile-stats">
-            <div className="stat-card">
-              <div className="stat-icon" style={{ background: '#e8f5e9' }}>
-                <i className="fas fa-box" style={{ color: '#2ecc71' }}></i>
-              </div>
-              <div className="stat-info">
-                <h3>{profileData.totalDonations}</h3>
-                <p>Total Donations</p>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon" style={{ background: '#e8eaf6' }}>
-                <i className="fas fa-users" style={{ color: '#3498db' }}></i>
-              </div>
-              <div className="stat-info">
-                <h3>{profileData.totalBeneficiaries}</h3>
-                <p>Beneficiaries</p>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon" style={{ background: '#fff3e0' }}>
-                <i className="fas fa-star" style={{ color: '#f39c12' }}></i>
-              </div>
-              <div className="stat-info">
-                <h3>{profileData.rating}</h3>
-                <p>Rating</p>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon" style={{ background: '#fef5f5' }}>
-                <i className="fas fa-calendar" style={{ color: '#e74c3c' }}></i>
-              </div>
-              <div className="stat-info">
-                <h3>{profileData.joinedDate}</h3>
-                <p>Joined</p>
-              </div>
-            </div>
-          </div>
-
-          {/* معلومات الملف الشخصي */}
-          {!isEditing ? (
-            <div className="profile-info">
-              <div className="info-section">
-                <h3>Business Information</h3>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <label>Business Name</label>
-                    <p>{profileData.businessName}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Business Type</label>
-                    <p>{profileData.businessType}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Registration Number</label>
-                    <p>{profileData.registrationNumber}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Tax Number</label>
-                    <p>{profileData.taxNumber}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="info-section">
-                <h3>Contact Information</h3>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <label>Contact Name</label>
-                    <p>{profileData.contactName}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Email</label>
-                    <p>{profileData.email}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Phone</label>
-                    <p>{profileData.phone}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>Address</label>
-                    <p>{profileData.address}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="profile-edit">
-              <div className="edit-section">
-                <h3>Business Information</h3>
-                <div className="edit-grid">
-                  <div className="form-group">
-                    <label>Business Name</label>
-                    <input
-                      type="text"
-                      name="businessName"
-                      value={profileData.businessName}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Business Type</label>
-                    <select name="businessType" value={profileData.businessType} onChange={handleChange}>
-                      <option value="Bakery">Bakery</option>
-                      <option value="Restaurant">Restaurant</option>
-                      <option value="Supermarket">Supermarket</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Registration Number</label>
-                    <input
-                      type="text"
-                      name="registrationNumber"
-                      value={profileData.registrationNumber}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Tax Number</label>
-                    <input
-                      type="text"
-                      name="taxNumber"
-                      value={profileData.taxNumber}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="edit-section">
-                <h3>Contact Information</h3>
-                <div className="edit-grid">
-                  <div className="form-group">
-                    <label>Contact Name</label>
-                    <input
-                      type="text"
-                      name="contactName"
-                      value={profileData.contactName}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Email</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={profileData.email}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Phone</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={profileData.phone}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Address</label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={profileData.address}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={() => setIsEditing(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary">
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

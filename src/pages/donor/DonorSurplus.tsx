@@ -1,260 +1,116 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DonorHeader from '../../components/donor/DonorHeader';
 import DonorSidebar from '../../components/donor/DonorSidebar';
-import './DonorDashboard.css';
+import { FaBox, FaSearch, FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 
-const DonorSurplus: React.FC = () => {
+const DonorSurplus = () => {
   const navigate = useNavigate();
-  
-  const [surpluses, setSurpluses] = useState([
-    { 
-      id: 1, 
-      title: 'Fresh Bread', 
-      category: 'Bakery',
-      quantity: '10 kg', 
-      expiry: '2026-03-15', 
-      status: 'available', 
-      requests: 2,
-      createdAt: '2026-03-10'
-    },
-    { 
-      id: 2, 
-      title: 'Mixed Vegetables', 
-      category: 'Vegetables',
-      quantity: '5 kg', 
-      expiry: '2026-03-12', 
-      status: 'reserved', 
-      requests: 1,
-      createdAt: '2026-03-09'
-    },
-    { 
-      id: 3, 
-      title: 'Prepared Meals', 
-      category: 'Prepared Food',
-      quantity: '15 portions', 
-      expiry: '2026-03-10', 
-      status: 'completed', 
-      requests: 0,
-      createdAt: '2026-03-08'
-    },
-    { 
-      id: 4, 
-      title: 'Fresh Fruits', 
-      category: 'Fruits',
-      quantity: '8 kg', 
-      expiry: '2026-03-14', 
-      status: 'available', 
-      requests: 3,
-      createdAt: '2026-03-11'
-    },
-  ]);
-
-  const [filter, setFilter] = useState('all');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
 
-  const filteredSurpluses = surpluses.filter(item => {
-    const matchesFilter = filter === 'all' || item.status === filter;
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.category.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
+  const surplusItems = [
+    { id: 1, name: 'Fresh Bread', category: 'Bakery', quantity: '100 pieces', expiry: '2026-03-15', status: 'available', requests: 2 },
+    { id: 2, name: 'Mixed Vegetables', category: 'Vegetables', quantity: '30 kg', expiry: '2026-03-12', status: 'reserved', requests: 1 },
+    { id: 3, name: 'Prepared Meals', category: 'Prepared Food', quantity: '50 meals', expiry: '2026-03-10', status: 'completed', requests: 0 },
+    { id: 4, name: 'Fresh Fruits', category: 'Fruits', quantity: '25 kg', expiry: '2026-03-14', status: 'available', requests: 3 },
+  ];
+
+  const filteredItems = surplusItems.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterStatus === 'all' || item.status === filterStatus;
+    return matchesSearch && matchesFilter;
   });
-
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this surplus?')) {
-      setSurpluses(surpluses.filter(item => item.id !== id));
-    }
-  };
-
-  const handleEdit = (id: number) => {
-    console.log('Edit surplus:', id);
-  };
 
   const getStatusClass = (status: string) => {
     switch(status) {
-      case 'available': return 'status-available';
-      case 'reserved': return 'status-reserved';
-      case 'completed': return 'status-completed';
-      default: return '';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch(status) {
-      case 'available': return 'Available';
-      case 'reserved': return 'Reserved';
-      case 'completed': return 'Completed';
-      default: return status;
+      case 'available': return 'bg-emerald-100 text-emerald-700';
+      case 'reserved': return 'bg-amber-100 text-amber-700';
+      case 'completed': return 'bg-blue-100 text-blue-700';
+      default: return 'bg-gray-100 text-gray-700';
     }
   };
 
   return (
-    <div className="donor-dashboard">
-      <DonorHeader />
-      <div className="dashboard-main container">
-        <DonorSidebar />
-        
-        <div className="dashboard-content">
-          {/* أزرار التنقل */}
-          <div className="navigation-buttons">
-            <button className="nav-btn back-btn" onClick={() => navigate(-1)}>
-              <i className="fas fa-arrow-left"></i> Back
-            </button>
-            <button className="nav-btn home-btn" onClick={() => navigate('/')}>
-              <i className="fas fa-home"></i> Home
-            </button>
-          </div>
-
-          <div className="page-header">
+    <div className="flex min-h-screen bg-gray-50">
+      <DonorSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+      
+      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+        <div className="p-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
-              <h1>My Surplus</h1>
-              <p>Manage all your food surplus listings</p>
+              <h1 className="text-2xl font-semibold text-gray-900">My Surplus</h1>
+              <p className="text-gray-500 mt-1">Manage all your food surplus listings</p>
             </div>
-            <button className="btn-primary" onClick={() => window.location.href = '/donor/add-surplus'}>
-              <i className="fas fa-plus-circle"></i> Add New Surplus
+            <button onClick={() => navigate('/donor/add-surplus')} className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+              <FaPlus size={14} /> Add New Surplus
             </button>
           </div>
 
-          <div className="filters-bar">
-            <div className="search-box">
-              <i className="fas fa-search"></i>
-              <input
-                type="text"
-                placeholder="Search by title or category..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+              <input type="text" placeholder="Search by name or category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary-500" />
             </div>
-            
-            <div className="filter-buttons">
-              <button 
-                className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-                onClick={() => setFilter('all')}
-              >
-                All
-              </button>
-              <button 
-                className={`filter-btn ${filter === 'available' ? 'active' : ''}`}
-                onClick={() => setFilter('available')}
-              >
-                Available
-              </button>
-              <button 
-                className={`filter-btn ${filter === 'reserved' ? 'active' : ''}`}
-                onClick={() => setFilter('reserved')}
-              >
-                Reserved
-              </button>
-              <button 
-                className={`filter-btn ${filter === 'completed' ? 'active' : ''}`}
-                onClick={() => setFilter('completed')}
-              >
-                Completed
-              </button>
+            <div className="flex gap-2">
+              {['all', 'available', 'reserved', 'completed'].map(status => (
+                <button key={status} onClick={() => setFilterStatus(status)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === status ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
+                  {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="surplus-section">
-            <div className="table-responsive">
-              <table className="surplus-table">
-                <thead>
+          {/* Table */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th>Title</th>
-                    <th>Category</th>
-                    <th>Quantity</th>
-                    <th>Expiry Date</th>
-                    <th>Status</th>
-                    <th>Requests</th>
-                    <th>Actions</th>
+                    <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Name</th>
+                    <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Category</th>
+                    <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Quantity</th>
+                    <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Expiry</th>
+                    <th className="text-left py-3 px-4 text-gray-600 font-semibold text-sm">Status</th>
+                    <th className="text-center py-3 px-4 text-gray-600 font-semibold text-sm">Requests</th>
+                    <th className="text-center py-3 px-4 text-gray-600 font-semibold text-sm">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSurpluses.length > 0 ? (
-                    filteredSurpluses.map(item => (
-                      <tr key={item.id}>
-                        <td>
-                          <div className="item-title">
-                            <strong>{item.title}</strong>
-                            <small>Added: {item.createdAt}</small>
-                          </div>
-                        </td>
-                        <td>{item.category}</td>
-                        <td>{item.quantity}</td>
-                        <td>{item.expiry}</td>
-                        <td>
-                          <span className={`status-badge ${getStatusClass(item.status)}`}>
-                            {getStatusText(item.status)}
-                          </span>
-                        </td>
-                        <td className="text-center">
-                          {item.requests > 0 ? (
-                            <span className="requests-badge">{item.requests}</span>
-                          ) : '-'}
-                        </td>
-                        <td>
-                          <div className="action-buttons">
-                            <button 
-                              className="action-btn edit" 
-                              onClick={() => handleEdit(item.id)}
-                              title="Edit"
-                            >
-                              <i className="fas fa-edit"></i>
-                            </button>
-                            <button 
-                              className="action-btn delete" 
-                              onClick={() => handleDelete(item.id)}
-                              title="Delete"
-                            >
-                              <i className="fas fa-trash"></i>
-                            </button>
-                            {item.requests > 0 && (
-                              <button 
-                                className="action-btn view" 
-                                title="View Requests"
-                              >
-                                <i className="fas fa-eye"></i>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={7} className="text-center empty-state">
-                        <i className="fas fa-box-open"></i>
-                        <p>No surplus items found</p>
-                        <button className="btn-primary" onClick={() => window.location.href = '/donor/add-surplus'}>
-                          Add Your First Surplus
-                        </button>
+                  {filteredItems.map(item => (
+                    <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 font-medium text-gray-900">{item.name}</td>
+                      <td className="py-3 px-4 text-gray-600">{item.category}</td>
+                      <td className="py-3 px-4 text-gray-600">{item.quantity}</td>
+                      <td className="py-3 px-4 text-gray-600">{item.expiry}</td>
+                      <td className="py-3 px-4"><span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(item.status)}`}>{item.status}</span></td>
+                      <td className="py-3 px-4 text-center">{item.requests > 0 ? <span className="inline-flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold">{item.requests}</span> : '-'}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all"><FaEdit size={14} /></button>
+                          <button className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all"><FaTrash size={14} /></button>
+                          <button className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"><FaEye size={14} /></button>
+                        </div>
                       </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
 
-          <div className="summary-cards">
-            <div className="summary-card">
-              <span className="summary-label">Total Items</span>
-              <span className="summary-value">{surpluses.length}</span>
-            </div>
-            <div className="summary-card">
-              <span className="summary-label">Available</span>
-              <span className="summary-value">{surpluses.filter(s => s.status === 'available').length}</span>
-            </div>
-            <div className="summary-card">
-              <span className="summary-label">Reserved</span>
-              <span className="summary-value">{surpluses.filter(s => s.status === 'reserved').length}</span>
-            </div>
-            <div className="summary-card">
-              <span className="summary-label">Completed</span>
-              <span className="summary-value">{surpluses.filter(s => s.status === 'completed').length}</span>
-            </div>
+          {/* Summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+            <div className="bg-white rounded-xl p-4 text-center"><span className="block text-2xl font-bold text-primary-600">{surplusItems.length}</span><span className="text-sm text-gray-500">Total Items</span></div>
+            <div className="bg-white rounded-xl p-4 text-center"><span className="block text-2xl font-bold text-emerald-600">{surplusItems.filter(s => s.status === 'available').length}</span><span className="text-sm text-gray-500">Available</span></div>
+            <div className="bg-white rounded-xl p-4 text-center"><span className="block text-2xl font-bold text-amber-600">{surplusItems.filter(s => s.status === 'reserved').length}</span><span className="text-sm text-gray-500">Reserved</span></div>
+            <div className="bg-white rounded-xl p-4 text-center"><span className="block text-2xl font-bold text-blue-600">{surplusItems.filter(s => s.status === 'completed').length}</span><span className="text-sm text-gray-500">Completed</span></div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

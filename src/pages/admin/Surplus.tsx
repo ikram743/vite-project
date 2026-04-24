@@ -1,410 +1,260 @@
 // pages/admin/Surplus.tsx
-import React, { useState } from "react";
-import "./Surplus.css";
+import React, { useState, useEffect } from "react";
+import {
+  FiSearch,
+  FiEye,
+  FiTrash2,
+  FiClock,
+  FiPackage,
+  FiAlertCircle,
+  FiCheckCircle,
+  FiXCircle,
+  FiRefreshCw,
+} from "react-icons/fi";
+import { FaStore } from "react-icons/fa";
+import { getDonations, deleteDonation } from "../../lib/API";
+import toast from "react-hot-toast";
 
 interface SurplusItem {
-  id: number;
+  id: string;
   donorName: string;
-  productName: string;
+  foodType: string;
   category: string;
-  quantity: number;
+  totalQuantity: number;
+  availableQuantity: number;
   unit: string;
-  expiryDate: string;
-  pickupAddress: string;
-  status: "active" | "claimed" | "expired";
-  createdAt: string;
-  claimedBy?: string;
-  claimedAt?: string;
+  expirationDate: string;
+  status: "available" | "completed" | "expired" | "cancelled";
+  donor?: {
+    user?: {
+      name: string;
+    };
+    organizationName?: string;
+  };
 }
 
 const Surplus: React.FC = () => {
-  const [surplus, setSurplus] = useState<SurplusItem[]>([
-    {
-      id: 1,
-      donorName: "Artisan Bakery",
-      productName: "Baguettes",
-      category: "Boulangerie",
-      quantity: 50,
-      unit: "unités",
-      expiryDate: "2025-03-27",
-      pickupAddress: "123 Rue Didouche, Alger",
-      status: "active",
-      createdAt: "2025-03-26",
-    },
-    {
-      id: 2,
-      donorName: "Supermarket El Djazair",
-      productName: "Fruits et légumes",
-      category: "Fruits & Légumes",
-      quantity: 120,
-      unit: "kg",
-      expiryDate: "2025-03-28",
-      pickupAddress: "45 Boulevard Krim Belkacem, Alger",
-      status: "active",
-      createdAt: "2025-03-26",
-    },
-    {
-      id: 3,
-      donorName: "Restaurant Le Jardin",
-      productName: "Plats préparés",
-      category: "Plats cuisinés",
-      quantity: 45,
-      unit: "repas",
-      expiryDate: "2025-03-27",
-      pickupAddress: "12 Rue Larbi Ben Mhidi, Oran",
-      status: "claimed",
-      createdAt: "2025-03-25",
-      claimedBy: "Food Bank Algiers",
-      claimedAt: "2025-03-26",
-    },
-    {
-      id: 4,
-      donorName: "Boulangerie Moderne",
-      productName: "Pains complets",
-      category: "Boulangerie",
-      quantity: 30,
-      unit: "unités",
-      expiryDate: "2025-03-26",
-      pickupAddress: "8 Rue des Frères, Annaba",
-      status: "expired",
-      createdAt: "2025-03-24",
-    },
-  ]);
-
+  const [surplus, setSurplus] = useState<SurplusItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "active" | "claimed" | "expired"
-  >("all");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [selectedItem, setSelectedItem] = useState<SurplusItem | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const categories = [
-    { value: "all", label: "Toutes catégories" },
-    { value: "Boulangerie", label: "Boulangerie" },
-    { value: "Fruits & Légumes", label: "Fruits & Légumes" },
-    { value: "Plats cuisinés", label: "Plats cuisinés" },
-    { value: "Produits secs", label: "Produits secs" },
-    { value: "Boissons", label: "Boissons" },
-    { value: "Autre", label: "Autre" },
-  ];
+  const fetchSurplus = async () => {
+    try {
+      setLoading(true);
+      const res = await getDonations(1, 100);
+      const donations = res.data || [];
+      setSurplus(donations);
+    } catch (error) {
+      console.error("Failed to fetch surplus:", error);
+      toast.error("Could not load surplus");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const statusCounts = {
-    all: surplus.length,
-    active: surplus.filter((s) => s.status === "active").length,
-    claimed: surplus.filter((s) => s.status === "claimed").length,
-    expired: surplus.filter((s) => s.status === "expired").length,
+  useEffect(() => {
+    fetchSurplus();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this surplus item?")) {
+      try {
+        await deleteDonation(id);
+        toast.success("Surplus item deleted");
+        fetchSurplus();
+      } catch (error) {
+        toast.error("Failed to delete surplus item");
+      }
+    }
   };
 
   const filteredSurplus = surplus.filter((item) => {
     const matchesSearch =
-      item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.donorName.toLowerCase().includes(searchTerm.toLowerCase());
+      item.foodType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.donor?.user?.name || item.donor?.organizationName || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" || item.status === filterStatus;
-    const matchesCategory =
-      filterCategory === "all" || item.category === filterCategory;
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesSearch && matchesStatus;
   });
 
-  const handleDelete = (id: number) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cette annonce ?")) {
-      setSurplus(surplus.filter((item) => item.id !== id));
-    }
+  const stats = {
+    total: surplus.length,
+    available: surplus.filter((s) => s.status === "available").length,
+    completed: surplus.filter((s) => s.status === "completed").length,
+    expired: surplus.filter((s) => s.status === "expired").length,
   };
 
-  const handleMarkAsExpired = (id: number) => {
-    setSurplus(
-      surplus.map((item) =>
-        item.id === id ? { ...item, status: "expired" as const } : item,
-      ),
-    );
-  };
-
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case "active":
-        return "status-active";
-      case "claimed":
-        return "status-claimed";
+      case "available":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+            <FiCheckCircle className="w-3 h-3" /> Disponible
+          </span>
+        );
+      case "completed":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+            <FiCheckCircle className="w-3 h-3" /> Distribué
+          </span>
+        );
       case "expired":
-        return "status-expired";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+            <FiXCircle className="w-3 h-3" /> Expiré
+          </span>
+        );
+      case "cancelled":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+            <FiXCircle className="w-3 h-3" /> Annulé
+          </span>
+        );
       default:
-        return "";
+        return null;
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "active":
-        return "Disponible";
-      case "claimed":
-        return "Réservé";
-      case "expired":
-        return "Expiré";
-      default:
-        return status;
-    }
-  };
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "Boulangerie":
-        return "fa-bread-slice";
-      case "Fruits & Légumes":
-        return "fa-apple-alt";
-      case "Plats cuisinés":
-        return "fa-utensils";
-      case "Produits secs":
-        return "fa-box-open";
-      case "Boissons":
-        return "fa-wine-bottle";
-      default:
-        return "fa-box";
-    }
-  };
-
-  const isExpiringSoon = (expiryDate: string) => {
+  const getExpiryStatus = (expiryDate: string) => {
     const today = new Date();
     const expiry = new Date(expiryDate);
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 2 && diffDays >= 0;
+    const diffDays = Math.ceil(
+      (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    if (diffDays < 0) return { label: "Expiré", class: "text-red-600" };
+    if (diffDays <= 1)
+      return { label: "Urgent", class: "text-red-500 font-semibold" };
+    if (diffDays <= 3) return { label: "Bientôt", class: "text-amber-600" };
+    return { label: "Valide", class: "text-gray-500" };
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="surplus-page">
-      {/* Header */}
-      <div className="page-header">
-        <div className="header-left">
-          <h2>Gestion des Surplus</h2>
-          <p>{filteredSurplus.length} annonces trouvées</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Gestion des Surplus
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Gérez les annonces de surplus alimentaire
+          </p>
         </div>
-        <div className="header-actions">
-          <button className="btn-outline">
-            <i className="fas fa-download"></i>
-            Exporter
-          </button>
+        <button
+          onClick={fetchSurplus}
+          className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+        >
+          <FiRefreshCw className="w-4 h-4" />
+          Actualiser
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+          <p className="text-sm text-gray-500">Total</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-emerald-600">
+            {stats.available}
+          </p>
+          <p className="text-sm text-gray-500">Disponibles</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
+          <p className="text-sm text-gray-500">Distribués</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
+          <p className="text-sm text-gray-500">Expirés</p>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="search-bar">
-        <div className="search-box">
-          <i className="fas fa-search"></i>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 relative">
+          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
             placeholder="Rechercher par produit ou donateur..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <option value="all">Tous les statuts</option>
+          <option value="available">Disponibles</option>
+          <option value="completed">Distribués</option>
+          <option value="expired">Expirés</option>
+          <option value="cancelled">Annulés</option>
+        </select>
       </div>
 
-      {/* Filters */}
-      <div className="filters-section">
-        <div className="filter-group">
-          <label>Statut</label>
-          <div className="filter-buttons">
-            <button
-              className={`filter-btn ${filterStatus === "all" ? "active" : ""}`}
-              onClick={() => setFilterStatus("all")}
-            >
-              Tous <span className="count">{statusCounts.all}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "active" ? "active" : ""}`}
-              onClick={() => setFilterStatus("active")}
-            >
-              <i className="fas fa-check-circle"></i>
-              Disponibles <span className="count">{statusCounts.active}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "claimed" ? "active" : ""}`}
-              onClick={() => setFilterStatus("claimed")}
-            >
-              <i className="fas fa-clock"></i>
-              Réservés <span className="count">{statusCounts.claimed}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "expired" ? "active" : ""}`}
-              onClick={() => setFilterStatus("expired")}
-            >
-              <i className="fas fa-hourglass-end"></i>
-              Expirés <span className="count">{statusCounts.expired}</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="filter-group">
-          <label>Catégorie</label>
-          <select
-            className="filter-select"
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-          >
-            {categories.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Surplus Cards */}
-      <div className="surplus-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSurplus.map((item) => (
-          <div key={item.id} className="surplus-card">
-            <div className="card-header">
-              <div className="product-category">
-                <i className={`fas ${getCategoryIcon(item.category)}`}></i>
-                <span>{item.category}</span>
+          <div
+            key={item.id}
+            className="bg-white rounded-xl p-4 border border-gray-100 hover:shadow-md transition-all"
+          >
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                  <FiPackage className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">{item.foodType}</p>
+                  <p className="text-xs text-gray-500">
+                    {item.donor?.user?.name ||
+                      item.donor?.organizationName ||
+                      "Donateur"}
+                  </p>
+                </div>
               </div>
-              <span
-                className={`status-badge ${getStatusBadgeClass(item.status)}`}
-              >
-                {getStatusText(item.status)}
-              </span>
+              {getStatusBadge(item.status)}
             </div>
-            <div className="card-body">
-              <h3>{item.productName}</h3>
-              <div className="product-details">
-                <div className="detail">
-                  <i className="fas fa-store"></i>
-                  <span>{item.donorName}</span>
-                </div>
-                <div className="detail">
-                  <i className="fas fa-weight-hanging"></i>
-                  <span>
-                    {item.quantity} {item.unit}
-                  </span>
-                </div>
-                <div className="detail">
-                  <i className="fas fa-calendar-alt"></i>
-                  <span
-                    className={
-                      isExpiringSoon(item.expiryDate) ? "expiring-soon" : ""
-                    }
-                  >
-                    Expire le {item.expiryDate}
-                  </span>
-                </div>
-                <div className="detail">
-                  <i className="fas fa-map-marker-alt"></i>
-                  <span>{item.pickupAddress}</span>
-                </div>
-                {item.status === "claimed" && (
-                  <div className="detail claimed-info">
-                    <i className="fas fa-hand-holding-heart"></i>
-                    <span>Réservé par {item.claimedBy}</span>
-                  </div>
-                )}
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Quantité:</span>
+                <span className="font-medium text-gray-800">
+                  {item.availableQuantity} / {item.totalQuantity} {item.unit}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Expiration:</span>
+                <span className={getExpiryStatus(item.expirationDate).class}>
+                  {new Date(item.expirationDate).toLocaleDateString()} (
+                  {getExpiryStatus(item.expirationDate).label})
+                </span>
               </div>
             </div>
-            <div className="card-actions">
-              <button
-                className="btn-icon"
-                onClick={() => {
-                  setSelectedItem(item);
-                  setShowDetailsModal(true);
-                }}
-                title="Voir détails"
-              >
-                <i className="fas fa-eye"></i>
+            <div className="flex gap-2 pt-3 border-t border-gray-100">
+              <button className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                <FiEye className="w-4 h-4" /> Détails
               </button>
-              {item.status === "active" && (
-                <button
-                  className="btn-icon"
-                  onClick={() => handleMarkAsExpired(item.id)}
-                  title="Marquer comme expiré"
-                >
-                  <i className="fas fa-hourglass-end"></i>
-                </button>
-              )}
               <button
-                className="btn-icon delete"
                 onClick={() => handleDelete(item.id)}
-                title="Supprimer"
+                className="inline-flex items-center justify-center gap-1 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
               >
-                <i className="fas fa-trash"></i>
+                <FiTrash2 className="w-4 h-4" />
               </button>
             </div>
           </div>
         ))}
       </div>
-
-      {/* Details Modal */}
-      {showDetailsModal && selectedItem && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowDetailsModal(false)}
-        >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Détails du surplus</h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="detail-item">
-                <label>Produit:</label>
-                <p>{selectedItem.productName}</p>
-              </div>
-              <div className="detail-item">
-                <label>Catégorie:</label>
-                <p>{selectedItem.category}</p>
-              </div>
-              <div className="detail-item">
-                <label>Donateur:</label>
-                <p>{selectedItem.donorName}</p>
-              </div>
-              <div className="detail-item">
-                <label>Quantité:</label>
-                <p>
-                  {selectedItem.quantity} {selectedItem.unit}
-                </p>
-              </div>
-              <div className="detail-item">
-                <label>Date d'expiration:</label>
-                <p>{selectedItem.expiryDate}</p>
-              </div>
-              <div className="detail-item">
-                <label>Adresse de retrait:</label>
-                <p>{selectedItem.pickupAddress}</p>
-              </div>
-              <div className="detail-item">
-                <label>Date de création:</label>
-                <p>{selectedItem.createdAt}</p>
-              </div>
-              {selectedItem.status === "claimed" && (
-                <>
-                  <div className="detail-item">
-                    <label>Réservé par:</label>
-                    <p>{selectedItem.claimedBy}</p>
-                  </div>
-                  <div className="detail-item">
-                    <label>Date de réservation:</label>
-                    <p>{selectedItem.claimedAt}</p>
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

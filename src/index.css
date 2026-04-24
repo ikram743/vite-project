@@ -1,73 +1,121 @@
-/* src/index.css */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap");
 
-html, body {
-  width: 100%;
-  overflow-x: hidden;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --primary: #10b981;
-  --primary-dark: #059669;
-  --primary-light: #d1fae5;
-  --secondary: #fbbf24;
-  --secondary-dark: #f59e0b;
-  --accent: #f97316;
-  --accent-light: #ffedd5;
-  --text-dark: #1e293b;
-  --text-light: #475569;
-  --text-muted: #64748b;
-  --background: #fef9f1;
-  --white: #ffffff;
-  --gray-light: #f1f5f9;
-  --gray-medium: #e2e8f0;
-  --gray-dark: #cbd5e1;
-}
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: var(--text-dark);
-  background: var(--background);
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  width: 100%;
-}
-/* إصلاح الديكالاج للأزرار */
-.nav-buttons {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.nav-buttons a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  line-height: 1;
-}
-
-/* منع انكسار الأزرار */
-.nav-container {
-  flex-wrap: wrap;
-}
-
-@media (max-width: 768px) {
-  .nav-container {
-    flex-direction: column;
-    text-align: center;
+@layer base {
+  body {
+    @apply bg-gray-50 font-sans text-gray-800;
   }
-  
-  .nav-buttons {
-    justify-content: center;
-    margin-top: 10px;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading font-semibold;
+  }
+}
+
+@layer components {
+  /* Custom Button Styles */
+  .btn-primary {
+    @apply bg-primary-500 text-white px-6 py-3 rounded-full font-semibold 
+           hover:bg-primary-600 transition-all duration-200 
+           hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-500 text-white px-6 py-3 rounded-full font-semibold 
+           hover:bg-secondary-600 transition-all duration-200 
+           hover:shadow-lg hover:-translate-y-0.5;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary-500 text-primary-500 px-6 py-3 rounded-full 
+           font-semibold hover:bg-primary-500 hover:text-white 
+           transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 text-white px-6 py-3 rounded-full font-semibold 
+           hover:bg-red-600 transition-all duration-200;
+  }
+
+  /* Card Styles */
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 
+           hover:shadow-md transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:-translate-y-1 hover:shadow-lg transition-all duration-300;
+  }
+
+  /* Status Badges */
+  .badge-success {
+    @apply bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-700 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-danger {
+    @apply bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-info {
+    @apply bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  /* Urgency Indicators */
+  .urgency-critical {
+    @apply bg-red-50 border-l-4 border-red-500;
+  }
+
+  .urgency-warning {
+    @apply bg-yellow-50 border-l-4 border-yellow-500;
+  }
+
+  .urgency-normal {
+    @apply bg-green-50 border-l-4 border-green-500;
+  }
+
+  /* Stats Cards */
+  .stat-card {
+    @apply bg-white rounded-2xl p-6 shadow-sm border border-gray-100 
+           hover:shadow-md transition-all duration-300;
+  }
+
+  /* Input Styles */
+  .input-primary {
+    @apply w-full px-4 py-3 border border-gray-200 rounded-xl 
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           transition-all duration-200;
+  }
+
+  /* Table Styles */
+  .table-container {
+    @apply overflow-x-auto bg-white rounded-2xl shadow-sm border border-gray-100;
+  }
+
+  .data-table {
+    @apply min-w-full divide-y divide-gray-200;
+  }
+
+  .data-table th {
+    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50;
+  }
+
+  .data-table td {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-600;
+  }
+
+  /* Loading Skeleton */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
   }
 }

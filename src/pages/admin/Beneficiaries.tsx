@@ -1,662 +1,400 @@
 // pages/admin/Beneficiaries.tsx
-import React, { useState } from "react";
-import "./Benificiaries.css";
+import React, { useState, useEffect } from "react";
+import {
+  FiSearch,
+  FiEye,
+  FiCheckCircle,
+  FiXCircle,
+  FiTrash2,
+  FiPlus,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiCalendar,
+  FiHeart,
+  FiUsers,
+  FiRefreshCw,
+} from "react-icons/fi";
+import { FaHandHoldingHeart } from "react-icons/fa";
+import {
+  getUsers,
+  verifyBeneficiary,
+  deleteUser,
+  activateUser,
+  deactivateUser,
+} from "../../lib/API";
+import toast from "react-hot-toast";
 
 interface Beneficiary {
-  id: number;
-  associationName: string;
-  associationType: string;
-  contactName: string;
+  id: string;
+  name: string;
   email: string;
   phone: string;
   address: string;
   wilaya: string;
   status: "active" | "pending" | "suspended";
-  registrationNumber: string;
-  mission: string;
-  joinDate: string;
   totalReceived: number;
-  lastClaim: string;
-  totalClaims: number;
+  createdAt: string;
+  beneficiaryProfile?: {
+    organizationType: string;
+    isVerified: boolean;
+  };
 }
 
 const Beneficiaries: React.FC = () => {
-  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([
-    {
-      id: 1,
-      associationName: "Food Bank Algiers",
-      associationType: "foodBank",
-      contactName: "Fatima Zahra",
-      email: "contact@foodbank.dz",
-      phone: "+213 555 789 012",
-      address: "45 Rue Didouche, Alger",
-      wilaya: "16",
-      status: "active",
-      registrationNumber: "ABC123456",
-      mission: "Lutter contre la faim et le gaspillage alimentaire",
-      joinDate: "2025-01-20",
-      totalReceived: 1250,
-      lastClaim: "2025-03-25",
-      totalClaims: 18,
-    },
-    {
-      id: 2,
-      associationName: "Solidarité Oran",
-      associationType: "charity",
-      contactName: "Mohamed Lamine",
-      email: "info@solidarite.dz",
-      phone: "+213 555 456 789",
-      address: "12 Boulevard Emir Abdelkader, Oran",
-      wilaya: "31",
-      status: "active",
-      registrationNumber: "DEF789012",
-      mission: "Aide aux familles dans le besoin",
-      joinDate: "2025-02-05",
-      totalReceived: 780,
-      lastClaim: "2025-03-24",
-      totalClaims: 12,
-    },
-    {
-      id: 3,
-      associationName: "Aide et Partage",
-      associationType: "community",
-      contactName: "Nadia Benali",
-      email: "nadia@aidepartage.dz",
-      phone: "+213 555 234 567",
-      address: "8 Rue des Frères Bouadou, Annaba",
-      wilaya: "23",
-      status: "pending",
-      registrationNumber: "GHI345678",
-      mission: "Distribution alimentaire aux personnes démunies",
-      joinDate: "2025-03-18",
-      totalReceived: 0,
-      lastClaim: "-",
-      totalClaims: 0,
-    },
-  ]);
-
+  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "active" | "pending" | "suspended"
-  >("all");
-  const [filterWilaya, setFilterWilaya] = useState<string>("all");
-  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedBeneficiary, setSelectedBeneficiary] =
     useState<Beneficiary | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showClaimsModal, setShowClaimsModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  const wilayas = [
-    { code: "16", name: "Alger" },
-    { code: "31", name: "Oran" },
-    { code: "23", name: "Annaba" },
-    { code: "13", name: "Tlemcen" },
-    { code: "15", name: "Tizi Ouzou" },
-  ];
+  // Fetch beneficiaries from backend
+  const fetchBeneficiaries = async () => {
+    try {
+      setLoading(true);
+      const res = await getUsers();
+      // Filter only beneficiaries
+      const beneficiariesList = (res.users || []).filter(
+        (user: any) => user.role === "beneficiary",
+      );
+      setBeneficiaries(beneficiariesList);
+    } catch (error) {
+      console.error("Failed to fetch beneficiaries:", error);
+      toast.error("Could not load beneficiaries");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const associationTypes = [
-    { value: "all", label: "Tous les types" },
-    { value: "foodBank", label: "Banque Alimentaire" },
-    { value: "charity", label: "Association Caritative" },
-    { value: "shelter", label: "Refuge" },
-    { value: "community", label: "Centre Communautaire" },
-    { value: "religious", label: "Organisation Religieuse" },
-    { value: "other", label: "Autre" },
-  ];
+  useEffect(() => {
+    fetchBeneficiaries();
+  }, []);
 
-  const statusCounts = {
-    all: beneficiaries.length,
+  const handleVerify = async (id: string) => {
+    try {
+      await verifyBeneficiary(id);
+      toast.success("Beneficiary verified successfully");
+      fetchBeneficiaries();
+    } catch (error) {
+      toast.error("Failed to verify beneficiary");
+    }
+  };
+
+  const handleActivate = async (id: string) => {
+    try {
+      await activateUser(id);
+      toast.success("Beneficiary activated");
+      fetchBeneficiaries();
+    } catch (error) {
+      toast.error("Failed to activate beneficiary");
+    }
+  };
+
+  const handleDeactivate = async (id: string) => {
+    try {
+      await deactivateUser(id);
+      toast.success("Beneficiary deactivated");
+      fetchBeneficiaries();
+    } catch (error) {
+      toast.error("Failed to deactivate beneficiary");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this beneficiary?")) {
+      try {
+        await deleteUser(id);
+        toast.success("Beneficiary deleted");
+        fetchBeneficiaries();
+      } catch (error) {
+        toast.error("Failed to delete beneficiary");
+      }
+    }
+  };
+
+  const filteredBeneficiaries = beneficiaries.filter((b) => {
+    const matchesSearch =
+      b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === "all" || b.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  const stats = {
+    total: beneficiaries.length,
     active: beneficiaries.filter((b) => b.status === "active").length,
     pending: beneficiaries.filter((b) => b.status === "pending").length,
     suspended: beneficiaries.filter((b) => b.status === "suspended").length,
   };
 
-  const filteredBeneficiaries = beneficiaries.filter((b) => {
-    const matchesSearch =
-      b.associationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "all" || b.status === filterStatus;
-    const matchesWilaya = filterWilaya === "all" || b.wilaya === filterWilaya;
-    const matchesType =
-      filterType === "all" || b.associationType === filterType;
-    return matchesSearch && matchesStatus && matchesWilaya && matchesType;
-  });
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "foodBank":
-        return "Banque Alimentaire";
-      case "charity":
-        return "Association Caritative";
-      case "shelter":
-        return "Refuge";
-      case "community":
-        return "Centre Communautaire";
-      case "religious":
-        return "Organisation Religieuse";
-      default:
-        return "Autre";
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "foodBank":
-        return "fa-utensils";
-      case "charity":
-        return "fa-hand-holding-heart";
-      case "shelter":
-        return "fa-home";
-      case "community":
-        return "fa-users";
-      case "religious":
-        return "fa-church";
-      default:
-        return "fa-building";
-    }
-  };
-
-  const handleApprove = (id: number) => {
-    setBeneficiaries(
-      beneficiaries.map((b) =>
-        b.id === id ? { ...b, status: "active" as const } : b,
-      ),
-    );
-  };
-
-  const handleSuspend = (id: number) => {
-    if (confirm("Êtes-vous sûr de vouloir suspendre cette association ?")) {
-      setBeneficiaries(
-        beneficiaries.map((b) =>
-          b.id === id ? { ...b, status: "suspended" as const } : b,
-        ),
-      );
-    }
-  };
-
-  const handleActivate = (id: number) => {
-    setBeneficiaries(
-      beneficiaries.map((b) =>
-        b.id === id ? { ...b, status: "active" as const } : b,
-      ),
-    );
-  };
-
-  const handleDelete = (id: number) => {
-    if (
-      confirm(
-        "Êtes-vous sûr de vouloir supprimer cette association ? Cette action est irréversible.",
-      )
-    ) {
-      setBeneficiaries(beneficiaries.filter((b) => b.id !== id));
-    }
-  };
-
-  const handleViewDetails = (beneficiary: Beneficiary) => {
-    setSelectedBeneficiary(beneficiary);
-    setShowDetailsModal(true);
-  };
-
-  const handleViewClaims = (beneficiary: Beneficiary) => {
-    setSelectedBeneficiary(beneficiary);
-    setShowClaimsModal(true);
-  };
-
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return "status-active";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+            <FiCheckCircle className="w-3 h-3" /> Actif
+          </span>
+        );
       case "pending":
-        return "status-pending";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+            <FiXCircle className="w-3 h-3" /> En attente
+          </span>
+        );
       case "suspended":
-        return "status-suspended";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+            <FiXCircle className="w-3 h-3" /> Suspendu
+          </span>
+        );
       default:
-        return "";
+        return null;
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "active":
-        return "Actif";
-      case "pending":
-        return "En attente";
-      case "suspended":
-        return "Suspendu";
-      default:
-        return status;
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="beneficiaries-page">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="page-header">
-        <div className="header-left">
-          <h2>Gestion des Bénéficiaires</h2>
-          <p>{filteredBeneficiaries.length} associations trouvées</p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Bénéficiaires</h1>
+          <p className="text-gray-500 mt-1">
+            Gérez les associations et organisations bénéficiaires
+          </p>
         </div>
-        <div className="header-actions">
-          <button className="btn-outline">
-            <i className="fas fa-download"></i>
-            Exporter
+        <div className="flex gap-2">
+          <button
+            onClick={fetchBeneficiaries}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+          >
+            <FiRefreshCw className="w-4 h-4" />
+            Actualiser
           </button>
-          <button className="btn-primary">
-            <i className="fas fa-plus"></i>
-            Ajouter Association
+          <button className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition">
+            <FiPlus className="w-4 h-4" />
+            Ajouter un bénéficiaire
           </button>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="search-bar">
-        <div className="search-box">
-          <i className="fas fa-search"></i>
-          <input
-            type="text"
-            placeholder="Rechercher par nom d'association, contact ou email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+          <p className="text-sm text-gray-500">Total bénéficiaires</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+          <p className="text-sm text-gray-500">Actifs</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
+          <p className="text-sm text-gray-500">En attente</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-red-600">{stats.suspended}</p>
+          <p className="text-sm text-gray-500">Suspendus</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="filters-section">
-        <div className="filter-group">
-          <label>Statut</label>
-          <div className="filter-buttons">
-            <button
-              className={`filter-btn ${filterStatus === "all" ? "active" : ""}`}
-              onClick={() => setFilterStatus("all")}
-            >
-              Tous <span className="count">{statusCounts.all}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "active" ? "active" : ""}`}
-              onClick={() => setFilterStatus("active")}
-            >
-              <i className="fas fa-check-circle"></i>
-              Actifs <span className="count">{statusCounts.active}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "pending" ? "active" : ""}`}
-              onClick={() => setFilterStatus("pending")}
-            >
-              <i className="fas fa-clock"></i>
-              En attente <span className="count">{statusCounts.pending}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "suspended" ? "active" : ""}`}
-              onClick={() => setFilterStatus("suspended")}
-            >
-              <i className="fas fa-ban"></i>
-              Suspendus <span className="count">{statusCounts.suspended}</span>
-            </button>
-          </div>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 relative">
+          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Rechercher par nom ou email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
         </div>
-
-        <div className="filter-row">
-          <div className="filter-group">
-            <label>Wilaya</label>
-            <select
-              className="filter-select"
-              value={filterWilaya}
-              onChange={(e) => setFilterWilaya(e.target.value)}
-            >
-              <option value="all">Toutes les wilayas</option>
-              {wilayas.map((w) => (
-                <option key={w.code} value={w.code}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Type d'association</label>
-            <select
-              className="filter-select"
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-            >
-              {associationTypes.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <option value="all">Tous les statuts</option>
+          <option value="active">Actifs</option>
+          <option value="pending">En attente</option>
+          <option value="suspended">Suspendus</option>
+        </select>
       </div>
 
-      {/* Beneficiaries Table */}
-      <div className="beneficiaries-table-container">
-        <table className="beneficiaries-table">
-          <thead>
-            <tr>
-              <th>Association</th>
-              <th>Contact</th>
-              <th>Type</th>
-              <th>Wilaya</th>
-              <th>Total Reçu</th>
-              <th>Dernière demande</th>
-              <th>Statut</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredBeneficiaries.map((b) => (
-              <tr key={b.id}>
-                <td className="association-cell">
-                  <div className="association-info">
-                    <div className="association-icon">
-                      <i
-                        className={`fas ${getTypeIcon(b.associationType)}`}
-                      ></i>
-                    </div>
-                    <div>
-                      <strong>{b.associationName}</strong>
-                      <span className="association-meta">
-                        {b.totalClaims} demandes
-                      </span>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div className="contact-info">
-                    <strong>{b.contactName}</strong>
-                    <span className="contact-email">{b.email}</span>
-                  </div>
-                </td>
-                <td>
-                  <span className="type-badge">
-                    {getTypeLabel(b.associationType)}
-                  </span>
-                </td>
-                <td>
-                  {wilayas.find((w) => w.code === b.wilaya)?.name || b.wilaya}
-                </td>
-                <td className="received-amount">
-                  <strong>{b.totalReceived} kg</strong>
-                </td>
-                <td>{b.lastClaim}</td>
-                <td>
-                  <span
-                    className={`status-badge ${getStatusBadgeClass(b.status)}`}
-                  >
-                    <i
-                      className={`fas ${b.status === "active" ? "fa-check-circle" : b.status === "pending" ? "fa-clock" : "fa-ban"}`}
-                    ></i>
-                    {getStatusText(b.status)}
-                  </span>
-                </td>
-                <td className="actions">
-                  <button
-                    className="btn-icon"
-                    onClick={() => handleViewDetails(b)}
-                    title="Voir détails"
-                  >
-                    <i className="fas fa-eye"></i>
-                  </button>
-                  <button
-                    className="btn-icon"
-                    onClick={() => handleViewClaims(b)}
-                    title="Voir les demandes"
-                  >
-                    <i className="fas fa-clipboard-list"></i>
-                  </button>
-                  {b.status === "pending" && (
-                    <button
-                      className="btn-icon approve"
-                      onClick={() => handleApprove(b.id)}
-                      title="Approuver"
-                    >
-                      <i className="fas fa-check"></i>
-                    </button>
-                  )}
-                  {b.status === "active" && (
-                    <button
-                      className="btn-icon suspend"
-                      onClick={() => handleSuspend(b.id)}
-                      title="Suspendre"
-                    >
-                      <i className="fas fa-ban"></i>
-                    </button>
-                  )}
-                  {b.status === "suspended" && (
-                    <button
-                      className="btn-icon activate"
-                      onClick={() => handleActivate(b.id)}
-                      title="Réactiver"
-                    >
-                      <i className="fas fa-play"></i>
-                    </button>
-                  )}
-                  <button
-                    className="btn-icon delete"
-                    onClick={() => handleDelete(b.id)}
-                    title="Supprimer"
-                  >
-                    <i className="fas fa-trash"></i>
-                  </button>
-                </td>
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Bénéficiaire
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Email
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Wilaya
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Statut
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredBeneficiaries.map((b) => (
+                <tr key={b.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                        <FaHandHoldingHeart className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">{b.name}</p>
+                        <p className="text-xs text-gray-500">{b.phone}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4 text-sm text-gray-600">{b.email}</td>
+                  <td className="p-4 text-gray-600">{b.wilaya || "-"}</td>
+                  <td className="p-4">{getStatusBadge(b.status)}</td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedBeneficiary(b);
+                          setShowModal(true);
+                        }}
+                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition"
+                      >
+                        <FiEye className="w-4 h-4" />
+                      </button>
+                      {b.status === "pending" && (
+                        <button
+                          onClick={() => handleVerify(b.id)}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                        >
+                          <FiCheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      {b.status === "active" && (
+                        <button
+                          onClick={() => handleDeactivate(b.id)}
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                        >
+                          <FiXCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      {b.status === "suspended" && (
+                        <button
+                          onClick={() => handleActivate(b.id)}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                        >
+                          <FiCheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(b.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                      >
+                        <FiTrash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Beneficiary Details Modal */}
-      {showDetailsModal && selectedBeneficiary && (
+      {/* Modal - same as before but with real data */}
+      {showModal && selectedBeneficiary && (
         <div
-          className="modal-overlay"
-          onClick={() => setShowDetailsModal(false)}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(false)}
         >
           <div
-            className="modal-content large"
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-header">
-              <h3>Détails de l'Association</h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Détails du bénéficiaire
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <FiXCircle className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
             </div>
-            <div className="modal-body">
-              <div className="beneficiary-detail-header">
-                <div className="beneficiary-icon-large">
-                  <i
-                    className={`fas ${getTypeIcon(selectedBeneficiary.associationType)}`}
-                  ></i>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
+                <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
+                  <FaHandHoldingHeart className="w-8 h-8 text-blue-600" />
                 </div>
                 <div>
-                  <h4>{selectedBeneficiary.associationName}</h4>
-                  <span
-                    className={`status-badge ${getStatusBadgeClass(selectedBeneficiary.status)}`}
-                  >
-                    {getStatusText(selectedBeneficiary.status)}
-                  </span>
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    {selectedBeneficiary.name}
+                  </h3>
+                  <p className="text-gray-500">
+                    {selectedBeneficiary.beneficiaryProfile?.organizationType ||
+                      "Association"}
+                  </p>
                 </div>
               </div>
-              <div className="details-grid">
-                <div className="detail-section">
-                  <h5>Informations de l'association</h5>
-                  <div className="detail-row">
-                    <span className="detail-label">Type:</span>
-                    <span>
-                      {getTypeLabel(selectedBeneficiary.associationType)}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">N° d'enregistrement:</span>
-                    <span>{selectedBeneficiary.registrationNumber}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Mission:</span>
-                    <span>{selectedBeneficiary.mission}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-3">
+                  <FiMail className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Email</p>
+                    <p className="text-gray-800">{selectedBeneficiary.email}</p>
                   </div>
                 </div>
-                <div className="detail-section">
-                  <h5>Informations de contact</h5>
-                  <div className="detail-row">
-                    <span className="detail-label">Personne de contact:</span>
-                    <span>{selectedBeneficiary.contactName}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Email:</span>
-                    <span>{selectedBeneficiary.email}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Téléphone:</span>
-                    <span>{selectedBeneficiary.phone}</span>
+                <div className="flex items-center gap-3">
+                  <FiPhone className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Téléphone</p>
+                    <p className="text-gray-800">{selectedBeneficiary.phone}</p>
                   </div>
                 </div>
-                <div className="detail-section">
-                  <h5>Adresse</h5>
-                  <div className="detail-row">
-                    <span className="detail-label">Adresse:</span>
-                    <span>{selectedBeneficiary.address}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Wilaya:</span>
-                    <span>
-                      {
-                        wilayas.find(
-                          (w) => w.code === selectedBeneficiary.wilaya,
-                        )?.name
-                      }
-                    </span>
+                <div className="flex items-center gap-3">
+                  <FiMapPin className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Wilaya</p>
+                    <p className="text-gray-800">
+                      {selectedBeneficiary.wilaya || "-"}
+                    </p>
                   </div>
                 </div>
-                <div className="detail-section">
-                  <h5>Statistiques</h5>
-                  <div className="detail-row">
-                    <span className="detail-label">Date d'inscription:</span>
-                    <span>{selectedBeneficiary.joinDate}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Total reçu:</span>
-                    <span className="highlight">
-                      {selectedBeneficiary.totalReceived} kg
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Dernière demande:</span>
-                    <span>{selectedBeneficiary.lastClaim}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Demandes totales:</span>
-                    <span>{selectedBeneficiary.totalClaims}</span>
+                <div className="flex items-center gap-3">
+                  <FiCalendar className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Date d'inscription</p>
+                    <p className="text-gray-800">
+                      {new Date(
+                        selectedBeneficiary.createdAt,
+                      ).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Claims History Modal */}
-      {showClaimsModal && selectedBeneficiary && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowClaimsModal(false)}
-        >
-          <div
-            className="modal-content large"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h3>
-                Historique des demandes - {selectedBeneficiary.associationName}
-              </h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowClaimsModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="claims-stats">
-                <div className="stat-summary">
-                  <div className="stat-item">
-                    <span className="stat-value">
-                      {selectedBeneficiary.totalReceived} kg
-                    </span>
-                    <span className="stat-label">Total reçu</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">
-                      {selectedBeneficiary.totalClaims}
-                    </span>
-                    <span className="stat-label">Demandes</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">
-                      {selectedBeneficiary.lastClaim}
-                    </span>
-                    <span className="stat-label">Dernière demande</span>
-                  </div>
-                </div>
-                <div className="claims-table-container">
-                  <table className="claims-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Donateur</th>
-                        <th>Produit</th>
-                        <th>Quantité</th>
-                        <th>Statut</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>25-03-2025</td>
-                        <td>Artisan Bakery</td>
-                        <td>Baguettes</td>
-                        <td>50 unités</td>
-                        <td>
-                          <span className="status-badge status-active">
-                            Récupéré
-                          </span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>20-03-2025</td>
-                        <td>Supermarket El Djazair</td>
-                        <td>Fruits et légumes</td>
-                        <td>30 kg</td>
-                        <td>
-                          <span className="status-badge status-active">
-                            Récupéré
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowClaimsModal(false)}
-              >
-                Fermer
-              </button>
             </div>
           </div>
         </div>

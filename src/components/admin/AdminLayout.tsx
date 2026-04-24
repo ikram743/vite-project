@@ -1,19 +1,25 @@
 // components/admin/AdminLayout.tsx
-import React from "react";
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import AdminSidebar from "./Sidebar";
 import AdminHeader from "./Header";
-import "./AdminLayout.css";
 
 const AdminLayout: React.FC = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
-    <div className="admin-layout">
-      <AdminSidebar />
-      <div className="admin-main">
+    <div className="min-h-screen bg-gray-50">
+      <AdminSidebar
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+      />
+      <div
+        className={`transition-all duration-300 ${sidebarCollapsed ? "pl-20" : "pl-64"}`}
+      >
         <AdminHeader />
-        <div className="admin-content">
+        <main className="p-6">
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   );

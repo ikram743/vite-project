@@ -1,169 +1,46 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DonorHeader from '../../components/donor/DonorHeader';
 import DonorSidebar from '../../components/donor/DonorSidebar';
-import './DonorDashboard.css';
+import { FaBox, FaWeight, FaUsers, FaStar, FaChartLine } from 'react-icons/fa';
 
-const DonorStatistics: React.FC = () => {
+const DonorStatistics = () => {
   const navigate = useNavigate();
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
-
-  const stats = {
-    totalDonations: 156,
-    totalQuantity: 845,
-    totalBeneficiaries: 47,
-    averageRating: 4.7,
-    activeDonors: 23,
-    successRate: 94
-  };
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [period, setPeriod] = useState('month');
 
   const monthlyData = [
-    { month: 'Jan', donations: 12, quantity: 65 },
-    { month: 'Feb', donations: 18, quantity: 92 },
-    { month: 'Mar', donations: 24, quantity: 128 },
-    { month: 'Apr', donations: 22, quantity: 115 },
-    { month: 'May', donations: 28, quantity: 145 },
-    { month: 'Jun', donations: 32, quantity: 168 },
+    { month: 'Jan', donations: 12, quantity: 65 }, { month: 'Feb', donations: 18, quantity: 92 },
+    { month: 'Mar', donations: 24, quantity: 128 }, { month: 'Apr', donations: 22, quantity: 115 },
+    { month: 'May', donations: 28, quantity: 145 }, { month: 'Jun', donations: 32, quantity: 168 },
   ];
-
-  const categoryData = [
-    { category: 'Bakery', count: 45, percentage: 29 },
-    { category: 'Vegetables', count: 38, percentage: 24 },
-    { category: 'Fruits', count: 32, percentage: 21 },
-    { category: 'Prepared Food', count: 28, percentage: 18 },
-    { category: 'Dairy', count: 13, percentage: 8 }
-  ];
-
   const maxDonations = Math.max(...monthlyData.map(d => d.donations));
 
+  const categories = [{ name: 'Bakery', percent: 29, count: 45 }, { name: 'Vegetables', percent: 24, count: 38 }, { name: 'Fruits', percent: 21, count: 32 }, { name: 'Prepared Food', percent: 18, count: 28 }, { name: 'Dairy', percent: 8, count: 13 }];
+
   return (
-    <div className="donor-dashboard">
-      <DonorHeader />
-      <div className="dashboard-main container">
-        <DonorSidebar />
-        
-        <div className="dashboard-content">
-          {/* أزرار التنقل */}
-          <div className="navigation-buttons">
-            <button className="nav-btn back-btn" onClick={() => navigate(-1)}>
-              <i className="fas fa-arrow-left"></i> Back
-            </button>
-            <button className="nav-btn home-btn" onClick={() => navigate('/')}>
-              <i className="fas fa-home"></i> Home
-            </button>
+    <div className="flex min-h-screen bg-gray-50">
+      <DonorSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+      
+      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+        <div className="p-8">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div><h1 className="text-2xl font-semibold text-gray-900">Statistics & Analytics</h1><p className="text-gray-500">Track your impact and donation patterns</p></div>
+            <div className="flex gap-2 bg-gray-100 p-1 rounded-full"><button onClick={() => setPeriod('week')} className={`px-4 py-1.5 rounded-full text-sm ${period === 'week' ? 'bg-primary-600 text-white' : 'text-gray-600'}`}>Week</button><button onClick={() => setPeriod('month')} className={`px-4 py-1.5 rounded-full text-sm ${period === 'month' ? 'bg-primary-600 text-white' : 'text-gray-600'}`}>Month</button><button onClick={() => setPeriod('year')} className={`px-4 py-1.5 rounded-full text-sm ${period === 'year' ? 'bg-primary-600 text-white' : 'text-gray-600'}`}>Year</button></div>
           </div>
 
-          <div className="statistics-header">
-            <div>
-              <h1>Statistics & Analytics</h1>
-              <p>Track your impact and donation patterns</p>
-            </div>
-            <div className="period-selector">
-              <button 
-                className={`period-btn ${selectedPeriod === 'week' ? 'active' : ''}`}
-                onClick={() => setSelectedPeriod('week')}
-              >
-                Week
-              </button>
-              <button 
-                className={`period-btn ${selectedPeriod === 'month' ? 'active' : ''}`}
-                onClick={() => setSelectedPeriod('month')}
-              >
-                Month
-              </button>
-              <button 
-                className={`period-btn ${selectedPeriod === 'year' ? 'active' : ''}`}
-                onClick={() => setSelectedPeriod('year')}
-              >
-                Year
-              </button>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+            <div className="bg-white rounded-xl p-4 flex items-center gap-3"><div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center"><FaBox className="text-emerald-600" /></div><div><div className="text-2xl font-bold">156</div><div className="text-sm text-gray-500">Total Donations</div></div></div>
+            <div className="bg-white rounded-xl p-4 flex items-center gap-3"><div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><FaWeight className="text-blue-600" /></div><div><div className="text-2xl font-bold">845</div><div className="text-sm text-gray-500">Total Quantity (kg)</div></div></div>
+            <div className="bg-white rounded-xl p-4 flex items-center gap-3"><div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"><FaUsers className="text-amber-600" /></div><div><div className="text-2xl font-bold">47</div><div className="text-sm text-gray-500">Beneficiaries</div></div></div>
+            <div className="bg-white rounded-xl p-4 flex items-center gap-3"><div className="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center"><FaStar className="text-rose-600" /></div><div><div className="text-2xl font-bold">4.8</div><div className="text-sm text-gray-500">Average Rating</div></div></div>
           </div>
 
-          {/* بطاقات الإحصائيات */}
-          <div className="stats-main-grid">
-            <div className="stat-main-card">
-              <div className="stat-main-icon" style={{ background: '#e8f5e9' }}>
-                <i className="fas fa-box" style={{ color: '#2ecc71' }}></i>
-              </div>
-              <div className="stat-main-info">
-                <span className="stat-main-label">Total Donations</span>
-                <span className="stat-main-value">{stats.totalDonations}</span>
-              </div>
-            </div>
-
-            <div className="stat-main-card">
-              <div className="stat-main-icon" style={{ background: '#e8eaf6' }}>
-                <i className="fas fa-weight" style={{ color: '#3498db' }}></i>
-              </div>
-              <div className="stat-main-info">
-                <span className="stat-main-label">Total Quantity (kg)</span>
-                <span className="stat-main-value">{stats.totalQuantity}</span>
-              </div>
-            </div>
-
-            <div className="stat-main-card">
-              <div className="stat-main-icon" style={{ background: '#fff3e0' }}>
-                <i className="fas fa-users" style={{ color: '#f39c12' }}></i>
-              </div>
-              <div className="stat-main-info">
-                <span className="stat-main-label">Beneficiaries</span>
-                <span className="stat-main-value">{stats.totalBeneficiaries}</span>
-              </div>
-            </div>
-
-            <div className="stat-main-card">
-              <div className="stat-main-icon" style={{ background: '#fef5f5' }}>
-                <i className="fas fa-star" style={{ color: '#e74c3c' }}></i>
-              </div>
-              <div className="stat-main-info">
-                <span className="stat-main-label">Average Rating</span>
-                <span className="stat-main-value">{stats.averageRating}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* الرسم البياني */}
-          <div className="chart-container">
-            <h2>Monthly Donations</h2>
-            <div className="bar-chart">
-              {monthlyData.map((item, index) => (
-                <div key={index} className="chart-column">
-                  <div 
-                    className="bar donations-bar"
-                    style={{ height: `${(item.donations / maxDonations) * 150}px` }}
-                  >
-                    <span className="bar-value">{item.donations}</span>
-                  </div>
-                  <span className="chart-label">{item.month}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* توزيع الفئات */}
-          <div className="analytics-card">
-            <h3>Categories Distribution</h3>
-            <div className="category-list">
-              {categoryData.map((item, index) => (
-                <div key={index} className="category-item">
-                  <div className="category-info">
-                    <span className="category-name">{item.category}</span>
-                    <span className="category-count">{item.count} items</span>
-                  </div>
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill"
-                      style={{ width: `${item.percentage}%` }}
-                    ></div>
-                  </div>
-                  <span className="category-percentage">{item.percentage}%</span>
-                </div>
-              ))}
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl p-6 shadow-sm"><h3 className="text-lg font-semibold mb-4">Monthly Donations</h3><div className="flex justify-between items-end h-48 gap-2">{monthlyData.map((item, i) => (<div key={i} className="flex-1 flex flex-col items-center gap-2"><div className="w-full bg-primary-500 rounded-t-lg transition-all" style={{ height: `${(item.donations / maxDonations) * 140}px` }}><div className="text-center text-white text-xs font-bold mt-1">{item.donations}</div></div><span className="text-xs text-gray-500">{item.month}</span></div>))}</div></div>
+            <div className="bg-white rounded-xl p-6 shadow-sm"><h3 className="text-lg font-semibold mb-4">Categories Distribution</h3>{categories.map((cat, i) => (<div key={i} className="mb-4"><div className="flex justify-between text-sm mb-1"><span>{cat.name}</span><span>{cat.count} items ({cat.percent}%)</span></div><div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-primary-500 rounded-full h-2" style={{ width: `${cat.percent}%` }}></div></div></div>))}</div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

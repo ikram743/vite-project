@@ -1,338 +1,359 @@
 // pages/admin/Impact.tsx
-import React, { useState } from "react";
-import "./Impact.css";
+import React, { useState, useEffect } from "react";
+import {
+  FiTrendingUp,
+  FiUsers,
+  FiHeart,
+  FiPackage,
+  FiDownload,
+  FiCalendar,
+  FiRefreshCw,
+  FiLoader,
+} from "react-icons/fi";
+import { FaUtensils, FaLeaf, FaHandHoldingHeart } from "react-icons/fa";
+import {
+  getDashboardStats,
+  getOverallImpact,
+  getTopDonors,
+  getImpactByPeriod,
+  getImpactByWilaya,
+  exportStatsPDF,
+} from "../../lib/API";
+import toast from "react-hot-toast";
 
 interface ImpactData {
-  totalMealsSaved: number;
-  totalFoodSaved: number;
+  totalQuantityKg: number;
+  beneficiariesServed: number;
+  co2SavedKg: number;
+  mealsServed: number;
   activeDonors: number;
   activeBeneficiaries: number;
-  co2Reduced: number;
-  familiesHelped: number;
+}
+
+interface TopDonor {
+  userId: string;
+  name: string;
+  email: string;
+  organizationName?: string;
+  totalQuantity: number;
+  donationCount: number;
 }
 
 const Impact: React.FC = () => {
-  const [dateRange, setDateRange] = useState<"week" | "month" | "year">(
-    "month",
-  );
-  const [selectedYear, setSelectedYear] = useState("2025");
-  const [selectedMonth, setSelectedMonth] = useState("03");
+  const [loading, setLoading] = useState(true);
+  const [impact, setImpact] = useState<ImpactData>({
+    totalQuantityKg: 0,
+    beneficiariesServed: 0,
+    co2SavedKg: 0,
+    mealsServed: 0,
+    activeDonors: 0,
+    activeBeneficiaries: 0,
+  });
+  const [topDonors, setTopDonors] = useState<TopDonor[]>([]);
+  const [period, setPeriod] = useState<"day" | "week" | "month">("month");
+  const [periodData, setPeriodData] = useState<any[]>([]);
 
-  const impactData: ImpactData = {
-    totalMealsSaved: 52300,
-    totalFoodSaved: 12500,
-    activeDonors: 48,
-    activeBeneficiaries: 32,
-    co2Reduced: 18750,
-    familiesHelped: 2340,
-  };
-
-  const monthlyData = [
-    { month: "Jan", meals: 3200, donors: 12, beneficiaries: 8 },
-    { month: "Fév", meals: 4100, donors: 18, beneficiaries: 12 },
-    { month: "Mar", meals: 5200, donors: 25, beneficiaries: 18 },
-    { month: "Avr", meals: 6100, donors: 32, beneficiaries: 24 },
-    { month: "Mai", meals: 7800, donors: 38, beneficiaries: 28 },
-    { month: "Juin", meals: 8500, donors: 42, beneficiaries: 30 },
-    { month: "Juil", meals: 9200, donors: 45, beneficiaries: 31 },
-    { month: "Aoû", meals: 9800, donors: 46, beneficiaries: 32 },
-    { month: "Sep", meals: 10200, donors: 47, beneficiaries: 32 },
-    { month: "Oct", meals: 10800, donors: 48, beneficiaries: 32 },
-    { month: "Nov", meals: 11500, donors: 48, beneficiaries: 32 },
-    { month: "Déc", meals: 12300, donors: 48, beneficiaries: 32 },
-  ];
-
-  const weeklyData = [
-    { week: "Sem 1", meals: 2100, donors: 45, claims: 28 },
-    { week: "Sem 2", meals: 2450, donors: 46, claims: 30 },
-    { week: "Sem 3", meals: 2800, donors: 47, claims: 31 },
-    { week: "Sem 4", meals: 2950, donors: 48, claims: 32 },
-  ];
-
-  const topDonors = [
-    { name: "Artisan Bakery", amount: 450, meals: 1800 },
-    { name: "Restaurant Le Jardin", amount: 280, meals: 1120 },
-    { name: "Supermarket El Djazair", amount: 320, meals: 1280 },
-    { name: "Boulangerie Moderne", amount: 190, meals: 760 },
-    { name: "Café Central", amount: 150, meals: 600 },
-  ];
-
-  const topBeneficiaries = [
-    { name: "Food Bank Algiers", amount: 1250, meals: 5000 },
-    { name: "Solidarité Oran", amount: 780, meals: 3120 },
-    { name: "Aide et Partage", amount: 540, meals: 2160 },
-    { name: "Croissant Rouge", amount: 420, meals: 1680 },
-    { name: "Association El Baraka", amount: 380, meals: 1520 },
-  ];
-
-  const getMaxMeals = () => {
-    if (dateRange === "week") {
-      return Math.max(...weeklyData.map((d) => d.meals));
+  // Fetch impact data from backend
+  const fetchImpact = async () => {
+    try {
+      const res = await getOverallImpact();
+      setImpact(res);
+    } catch (error) {
+      console.error("Failed to fetch impact:", error);
+      toast.error("Could not load impact data");
     }
-    return Math.max(...monthlyData.map((d) => d.meals));
   };
 
-  const maxMeals = getMaxMeals();
+  // Fetch top donors from backend
+  const fetchTopDonors = async () => {
+    try {
+      const res = await getTopDonors(5);
+      setTopDonors(res.donors || []);
+    } catch (error) {
+      console.error("Failed to fetch top donors:", error);
+    }
+  };
+
+  // Fetch impact by period
+  const fetchImpactByPeriod = async () => {
+    try {
+      const res = await getImpactByPeriod(period);
+      setPeriodData(res);
+    } catch (error) {
+      console.error("Failed to fetch period data:", error);
+    }
+  };
+
+  // Fetch all data
+  const loadData = async () => {
+    setLoading(true);
+    await Promise.all([fetchImpact(), fetchTopDonors(), fetchImpactByPeriod()]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    fetchImpactByPeriod();
+  }, [period]);
+
+  const handleExportPDF = async () => {
+    try {
+      await exportStatsPDF();
+      toast.success("Statistics exported successfully");
+    } catch (error) {
+      toast.error("Failed to export statistics");
+    }
+  };
+
+  // Format numbers
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat("fr-FR").format(Math.floor(num));
+  };
+
+  // Get donor name
+  const getDonorName = (donor: TopDonor) => {
+    return donor.organizationName || donor.name || "Anonymous";
+  };
+
+  // Calculate meals from quantity (1 kg = 2 meals)
+  const getMealsFromQuantity = (quantity: number) => {
+    return formatNumber(quantity * 2);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
+
+  // Metrics for display
+  const metrics = [
+    {
+      label: "Repas sauvés",
+      value: formatNumber(impact.mealsServed),
+      change: "+" + Math.round((impact.mealsServed / 1000) * 10) + "%",
+      icon: FaUtensils,
+      color: "emerald",
+    },
+    {
+      label: "CO2 évité",
+      value: formatNumber(impact.co2SavedKg),
+      unit: "kg",
+      change: "+" + Math.round((impact.co2SavedKg / 1000) * 10) + "%",
+      icon: FaLeaf,
+      color: "green",
+    },
+    {
+      label: "Bénéficiaires servis",
+      value: formatNumber(impact.beneficiariesServed),
+      change: "+" + Math.round((impact.beneficiariesServed / 100) * 5) + "%",
+      icon: FaHandHoldingHeart,
+      color: "blue",
+    },
+    {
+      label: "Donateurs actifs",
+      value: formatNumber(impact.activeDonors),
+      change: "+" + Math.round((impact.activeDonors / 10) * 2),
+      icon: FiUsers,
+      color: "purple",
+    },
+  ];
 
   return (
-    <div className="impact-page">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="impact-header">
-        <h2>Impact & Statistiques</h2>
-        <div className="date-range-selector">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Impact & Statistiques
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Mesurez l'impact de votre plateforme
+          </p>
+        </div>
+        <div className="flex gap-2">
           <button
-            className={`range-btn ${dateRange === "week" ? "active" : ""}`}
-            onClick={() => setDateRange("week")}
+            onClick={loadData}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
           >
-            Cette semaine
+            <FiRefreshCw className="w-4 h-4" />
+            Actualiser
           </button>
           <button
-            className={`range-btn ${dateRange === "month" ? "active" : ""}`}
-            onClick={() => setDateRange("month")}
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition"
           >
-            Ce mois
-          </button>
-          <button
-            className={`range-btn ${dateRange === "year" ? "active" : ""}`}
-            onClick={() => setDateRange("year")}
-          >
-            Cette année
+            <FiDownload className="w-4 h-4" />
+            Exporter PDF
           </button>
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="metrics-grid">
-        <div className="metric-card">
-          <div className="metric-icon">
-            <i className="fas fa-utensils"></i>
+      {/* Impact Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.map((m, i) => (
+          <div
+            key={i}
+            className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-gray-500">{m.label}</p>
+                <p className="text-3xl font-bold text-gray-800 mt-1">
+                  {m.value}
+                  {m.unit && (
+                    <span className="text-sm text-gray-400 ml-1">{m.unit}</span>
+                  )}
+                </p>
+                <p className="text-xs text-emerald-600 mt-2">▲ {m.change}</p>
+              </div>
+              <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
+                <m.icon className="w-6 h-6 text-emerald-600" />
+              </div>
+            </div>
           </div>
-          <div className="metric-info">
-            <h3>Repas Sauvés</h3>
-            <p className="metric-value">
-              {impactData.totalMealsSaved.toLocaleString()}
-            </p>
-            <span className="metric-trend positive">
-              <i className="fas fa-arrow-up"></i> +23% vs mois dernier
-            </span>
-          </div>
-        </div>
+        ))}
+      </div>
 
-        <div className="metric-card">
-          <div className="metric-icon">
-            <i className="fas fa-weight-hanging"></i>
-          </div>
-          <div className="metric-info">
-            <h3>Nourriture Sauvée</h3>
-            <p className="metric-value">
-              {impactData.totalFoodSaved.toLocaleString()} kg
-            </p>
-            <span className="metric-trend positive">
-              <i className="fas fa-arrow-up"></i> +18% vs mois dernier
-            </span>
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-icon">
-            <i className="fas fa-store"></i>
-          </div>
-          <div className="metric-info">
-            <h3>Donateurs Actifs</h3>
-            <p className="metric-value">{impactData.activeDonors}</p>
-            <span className="metric-trend positive">
-              <i className="fas fa-arrow-up"></i> +12 cette année
-            </span>
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-icon">
-            <i className="fas fa-hand-holding-heart"></i>
-          </div>
-          <div className="metric-info">
-            <h3>Bénéficiaires Actifs</h3>
-            <p className="metric-value">{impactData.activeBeneficiaries}</p>
-            <span className="metric-trend positive">
-              <i className="fas fa-arrow-up"></i> +8 cette année
-            </span>
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-icon">
-            <i className="fas fa-cloud"></i>
-          </div>
-          <div className="metric-info">
-            <h3>CO₂ Évité</h3>
-            <p className="metric-value">
-              {impactData.co2Reduced.toLocaleString()} kg
-            </p>
-            <span className="metric-trend positive">
-              <i className="fas fa-leaf"></i> Équivalent à 400 arbres
-            </span>
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-icon">
-            <i className="fas fa-users"></i>
-          </div>
-          <div className="metric-info">
-            <h3>Familles Aidées</h3>
-            <p className="metric-value">
-              {impactData.familiesHelped.toLocaleString()}
-            </p>
-            <span className="metric-trend positive">
-              <i className="fas fa-heart"></i> Impact social positif
-            </span>
+      {/* Main Impact Banner */}
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl p-6 text-white">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">
+              🌱 Impact environnemental total
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <p className="text-3xl font-bold">
+                  {formatNumber(impact.totalQuantityKg)} kg
+                </p>
+                <p className="text-emerald-100 text-sm">
+                  Nourriture redistribuée
+                </p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold">
+                  {formatNumber(impact.mealsServed)}
+                </p>
+                <p className="text-emerald-100 text-sm">Repas servis</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold">
+                  {formatNumber(impact.co2SavedKg)} kg
+                </p>
+                <p className="text-emerald-100 text-sm">CO₂ évité</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Chart Section */}
-      <div className="chart-section">
-        <div className="chart-header">
-          <h3>Évolution des dons</h3>
-          <div className="chart-controls">
-            <select className="chart-select">
-              <option value="meals">Repas sauvés</option>
-              <option value="donors">Donateurs</option>
-              <option value="beneficiaries">Bénéficiaires</option>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Evolution des dons */}
+        <div className="bg-white rounded-xl p-5 border border-gray-100">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">
+              📊 Évolution des dons
+            </h2>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as any)}
+              className="px-3 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="day">Par jour</option>
+              <option value="week">Par semaine</option>
+              <option value="month">Par mois</option>
             </select>
           </div>
-        </div>
-        <div className="chart-container">
-          <div className="bar-chart">
-            {(dateRange === "week" ? weeklyData : monthlyData).map(
-              (item, index) => (
-                <div key={index} className="bar-item">
-                  <div className="bar-label">
-                    {"month" in item ? item.month : item.week}
-                  </div>
-                  <div className="bar-wrapper">
-                    <div
-                      className="bar-fill"
-                      style={{
-                        height: `${(item.meals / maxMeals) * 100}%`,
-                        backgroundColor: "#3b7a5e",
-                      }}
-                    >
-                      <span className="bar-value">{item.meals}</span>
+          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-xl">
+            {periodData.length > 0 ? (
+              <div className="w-full h-full p-4">
+                {/* Simple bar chart representation */}
+                <div className="flex items-end justify-around h-full gap-2">
+                  {periodData.slice(0, 7).map((item, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-2">
+                      <div
+                        className="w-12 bg-emerald-500 rounded-t-lg transition-all hover:bg-emerald-600"
+                        style={{
+                          height: `${Math.min(
+                            200,
+                            (item.quantityKg /
+                              Math.max(
+                                ...periodData.map((p) => p.quantityKg),
+                              )) *
+                              150,
+                          )}px`,
+                        }}
+                      />
+                      <span className="text-xs text-gray-500 rotate-45">
+                        {new Date(item.period).toLocaleDateString("fr-FR", {
+                          day: "2-digit",
+                          month: "short",
+                        })}
+                      </span>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ),
+              </div>
+            ) : (
+              <p className="text-gray-400">Aucune donnée disponible</p>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Donor vs Beneficiary Comparison */}
-      <div className="comparison-section">
-        <div className="comparison-card">
-          <h3>Top Donateurs</h3>
-          <table className="ranking-table">
-            <thead>
-              <tr>
-                <th>Donateur</th>
-                <th>Quantité (kg)</th>
-                <th>Repas équivalents</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topDonors.map((donor, index) => (
-                <tr key={index}>
-                  <td>
-                    <span className="rank-badge">{index + 1}</span>
-                    {donor.name}
-                  </td>
-                  <td>{donor.amount} kg</td>
-                  <td>{donor.meals}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="comparison-card">
-          <h3>Top Bénéficiaires</h3>
-          <table className="ranking-table">
-            <thead>
-              <tr>
-                <th>Association</th>
-                <th>Reçu (kg)</th>
-                <th>Repas distribués</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topBeneficiaries.map((beneficiary, index) => (
-                <tr key={index}>
-                  <td>
-                    <span className="rank-badge">{index + 1}</span>
-                    {beneficiary.name}
-                  </td>
-                  <td>{beneficiary.amount} kg</td>
-                  <td>{beneficiary.meals}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Impact by Wilaya */}
-      <div className="wilaya-impact">
-        <h3>Impact par Wilaya</h3>
-        <div className="wilaya-grid">
-          <div className="wilaya-card">
-            <span className="wilaya-name">Alger</span>
-            <div className="wilaya-stats">
-              <div className="stat">
-                <i className="fas fa-utensils"></i>
-                <span>8,450 repas</span>
+        {/* Top Donors */}
+        <div className="bg-white rounded-xl p-5 border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            🏆 Top donateurs
+          </h2>
+          <div className="space-y-3">
+            {topDonors.length > 0 ? (
+              topDonors.map((donor, index) => (
+                <div
+                  key={donor.userId || index}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                        index === 0
+                          ? "bg-yellow-100 text-yellow-700"
+                          : index === 1
+                            ? "bg-gray-200 text-gray-700"
+                            : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">
+                        {getDonorName(donor)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {donor.totalQuantity} kg donnés
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-emerald-600">
+                      {getMealsFromQuantity(donor.totalQuantity)}
+                    </p>
+                    <p className="text-xs text-gray-500">repas</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>Aucun donateur pour le moment</p>
               </div>
-              <div className="stat">
-                <i className="fas fa-store"></i>
-                <span>24 donateurs</span>
-              </div>
-            </div>
-          </div>
-          <div className="wilaya-card">
-            <span className="wilaya-name">Oran</span>
-            <div className="wilaya-stats">
-              <div className="stat">
-                <i className="fas fa-utensils"></i>
-                <span>5,230 repas</span>
-              </div>
-              <div className="stat">
-                <i className="fas fa-store"></i>
-                <span>12 donateurs</span>
-              </div>
-            </div>
-          </div>
-          <div className="wilaya-card">
-            <span className="wilaya-name">Annaba</span>
-            <div className="wilaya-stats">
-              <div className="stat">
-                <i className="fas fa-utensils"></i>
-                <span>2,980 repas</span>
-              </div>
-              <div className="stat">
-                <i className="fas fa-store"></i>
-                <span>6 donateurs</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
-      </div>
-
-      {/* Export Button */}
-      <div className="export-section">
-        <button className="btn-primary">
-          <i className="fas fa-download"></i>
-          Exporter le rapport complet
-        </button>
       </div>
     </div>
   );

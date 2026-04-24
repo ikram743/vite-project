@@ -1,183 +1,139 @@
 // pages/admin/Users.tsx
-import React, { useState } from "react";
-import "./Users.css";
+import React, { useState, useEffect } from "react";
+import {
+  FiSearch,
+  FiEye,
+  FiCheckCircle,
+  FiXCircle,
+  FiTrash2,
+  FiUserPlus,
+  FiMail,
+  FiPhone,
+  FiCalendar,
+  FiShield,
+  FiRefreshCw,
+} from "react-icons/fi";
+import { FaStore, FaHandHoldingHeart, FaUserShield } from "react-icons/fa";
+import {
+  getUsers,
+  deleteUser,
+  activateUser,
+  deactivateUser,
+  changeRole,
+} from "../../lib/API";
+import toast from "react-hot-toast";
 
 interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
+  phone: string;
   role: "admin" | "donor" | "beneficiary";
   status: "active" | "pending" | "suspended";
-  phone: string;
-  joinDate: string;
-  lastLogin: string;
-  totalActions?: number;
+  createdAt: string;
+  lastLogin?: string;
 }
 
 const Users: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 1,
-      name: "Ahmed Benali",
-      email: "ahmed@artisan.dz",
-      role: "donor",
-      status: "active",
-      phone: "+213 555 123 456",
-      joinDate: "2025-01-15",
-      lastLogin: "2025-03-25",
-      totalActions: 45,
-    },
-    {
-      id: 2,
-      name: "Fatima Zahra",
-      email: "fatima@foodbank.dz",
-      role: "beneficiary",
-      status: "active",
-      phone: "+213 555 789 012",
-      joinDate: "2025-01-20",
-      lastLogin: "2025-03-24",
-      totalActions: 12,
-    },
-    {
-      id: 3,
-      name: "Karim Said",
-      email: "karim@supermarket.dz",
-      role: "donor",
-      status: "pending",
-      phone: "+213 555 345 678",
-      joinDate: "2025-03-20",
-      lastLogin: "-",
-      totalActions: 0,
-    },
-    {
-      id: 4,
-      name: "Nadia Bensalem",
-      email: "nadia@solidarite.dz",
-      role: "beneficiary",
-      status: "suspended",
-      phone: "+213 555 901 234",
-      joinDate: "2025-02-10",
-      lastLogin: "2025-03-15",
-      totalActions: 8,
-    },
-    {
-      id: 5,
-      name: "Mohamed Larbi",
-      email: "admin@foodshare.dz",
-      role: "admin",
-      status: "active",
-      phone: "+213 555 567 890",
-      joinDate: "2025-01-10",
-      lastLogin: "2025-03-26",
-      totalActions: 156,
-    },
-  ]);
-
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterRole, setFilterRole] = useState<
-    "all" | "admin" | "donor" | "beneficiary"
-  >("all");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "active" | "pending" | "suspended"
-  >("all");
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
-  const [resetPasswordEmail, setResetPasswordEmail] = useState("");
+  const [filterRole, setFilterRole] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  // Role filter counts
-  const roleCounts = {
-    all: users.length,
-    admin: users.filter((u) => u.role === "admin").length,
-    donor: users.filter((u) => u.role === "donor").length,
-    beneficiary: users.filter((u) => u.role === "beneficiary").length,
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await getUsers();
+      setUsers(res.users || []);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      toast.error("Could not load users");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Status filter counts
-  const statusCounts = {
-    all: users.length,
-    active: users.filter((u) => u.status === "active").length,
-    pending: users.filter((u) => u.status === "pending").length,
-    suspended: users.filter((u) => u.status === "suspended").length,
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleActivate = async (id: string) => {
+    try {
+      await activateUser(id);
+      toast.success("User activated");
+      fetchUsers();
+    } catch (error) {
+      toast.error("Failed to activate user");
+    }
+  };
+
+  const handleDeactivate = async (id: string) => {
+    try {
+      await deactivateUser(id);
+      toast.success("User deactivated");
+      fetchUsers();
+    } catch (error) {
+      toast.error("Failed to deactivate user");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      try {
+        await deleteUser(id);
+        toast.success("User deleted");
+        fetchUsers();
+      } catch (error) {
+        toast.error("Failed to delete user");
+      }
+    }
+  };
+
+  const handleChangeRole = async (id: string, newRole: string) => {
+    try {
+      await changeRole(id, newRole);
+      toast.success(`Role changed to ${newRole}`);
+      fetchUsers();
+    } catch (error) {
+      toast.error("Failed to change role");
+    }
   };
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.includes(searchTerm);
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === "all" || user.role === filterRole;
     const matchesStatus =
       filterStatus === "all" || user.status === filterStatus;
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const handleResetPassword = (user: User) => {
-    setResetPasswordEmail(user.email);
-    setShowResetPasswordModal(true);
+  const stats = {
+    total: users.length,
+    active: users.filter((u) => u.status === "active").length,
+    pending: users.filter((u) => u.status === "pending").length,
+    suspended: users.filter((u) => u.status === "suspended").length,
   };
 
-  const confirmResetPassword = () => {
-    alert(`Un email de réinitialisation a été envoyé à ${resetPasswordEmail}`);
-    setShowResetPasswordModal(false);
-  };
-
-  const handleSuspend = (id: number) => {
-    setUsers(
-      users.map((user) =>
-        user.id === id ? { ...user, status: "suspended" as const } : user,
-      ),
-    );
-  };
-
-  const handleActivate = (id: number) => {
-    setUsers(
-      users.map((user) =>
-        user.id === id ? { ...user, status: "active" as const } : user,
-      ),
-    );
-  };
-
-  const handleApprove = (id: number) => {
-    setUsers(
-      users.map((user) =>
-        user.id === id ? { ...user, status: "active" as const } : user,
-      ),
-    );
-  };
-
-  const handleDelete = (id: number) => {
-    if (
-      confirm(
-        "Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.",
-      )
-    ) {
-      setUsers(users.filter((user) => user.id !== id));
-    }
-  };
-
-  const handleViewDetails = (user: User) => {
-    setSelectedUser(user);
-    setShowDetailsModal(true);
-  };
-
-  const getRoleBadgeClass = (role: string) => {
+  const getRoleIcon = (role: string) => {
     switch (role) {
       case "admin":
-        return "role-admin";
+        return <FaUserShield className="w-4 h-4 text-purple-600" />;
       case "donor":
-        return "role-donor";
+        return <FaStore className="w-4 h-4 text-emerald-600" />;
       case "beneficiary":
-        return "role-beneficiary";
+        return <FaHandHoldingHeart className="w-4 h-4 text-blue-600" />;
       default:
-        return "";
+        return null;
     }
   };
 
-  const getRoleText = (role: string) => {
+  const getRoleLabel = (role: string) => {
     switch (role) {
       case "admin":
-        return "Administrateur";
+        return "Admin";
       case "donor":
         return "Donateur";
       case "beneficiary":
@@ -187,354 +143,206 @@ const Users: React.FC = () => {
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return "status-active";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+            <FiCheckCircle className="w-3 h-3" /> Actif
+          </span>
+        );
       case "pending":
-        return "status-pending";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+            <FiXCircle className="w-3 h-3" /> En attente
+          </span>
+        );
       case "suspended":
-        return "status-suspended";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+            <FiXCircle className="w-3 h-3" /> Suspendu
+          </span>
+        );
       default:
-        return "";
+        return null;
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "active":
-        return "Actif";
-      case "pending":
-        return "En attente";
-      case "suspended":
-        return "Suspendu";
-      default:
-        return status;
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="users-page">
-      {/* Header */}
-      <div className="page-header">
-        <div className="header-left">
-          <h2>Gestion des Utilisateurs</h2>
-          <p>{filteredUsers.length} utilisateurs trouvés</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Utilisateurs</h1>
+          <p className="text-gray-500 mt-1">
+            Gérez tous les utilisateurs de la plateforme
+          </p>
         </div>
-        <div className="header-actions">
-          <button className="btn-outline">
-            <i className="fas fa-download"></i>
-            Exporter
+        <div className="flex gap-2">
+          <button
+            onClick={fetchUsers}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+          >
+            <FiRefreshCw className="w-4 h-4" />
+            Actualiser
           </button>
-          <button className="btn-primary">
-            <i className="fas fa-user-plus"></i>
-            Ajouter Utilisateur
+          <button className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition">
+            <FiUserPlus className="w-4 h-4" />
+            Ajouter un utilisateur
           </button>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="search-bar">
-        <div className="search-box">
-          <i className="fas fa-search"></i>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+          <p className="text-sm text-gray-500">Total utilisateurs</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+          <p className="text-sm text-gray-500">Actifs</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
+          <p className="text-sm text-gray-500">En attente</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-red-600">{stats.suspended}</p>
+          <p className="text-sm text-gray-500">Suspendus</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 relative">
+          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Rechercher par nom, email ou téléphone..."
+            placeholder="Rechercher par nom ou email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
+        <select
+          value={filterRole}
+          onChange={(e) => setFilterRole(e.target.value)}
+          className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <option value="all">Tous les rôles</option>
+          <option value="admin">Administrateurs</option>
+          <option value="donor">Donateurs</option>
+          <option value="beneficiary">Bénéficiaires</option>
+        </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <option value="all">Tous les statuts</option>
+          <option value="active">Actifs</option>
+          <option value="pending">En attente</option>
+          <option value="suspended">Suspendus</option>
+        </select>
       </div>
 
-      {/* Role Filters */}
-      <div className="filters-section">
-        <div className="filter-group">
-          <label>Filtrer par rôle</label>
-          <div className="filter-buttons">
-            <button
-              className={`filter-btn ${filterRole === "all" ? "active" : ""}`}
-              onClick={() => setFilterRole("all")}
-            >
-              Tous <span className="count">{roleCounts.all}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterRole === "admin" ? "active" : ""}`}
-              onClick={() => setFilterRole("admin")}
-            >
-              <i className="fas fa-crown"></i>
-              Administrateurs <span className="count">{roleCounts.admin}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterRole === "donor" ? "active" : ""}`}
-              onClick={() => setFilterRole("donor")}
-            >
-              <i className="fas fa-store"></i>
-              Donateurs <span className="count">{roleCounts.donor}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterRole === "beneficiary" ? "active" : ""}`}
-              onClick={() => setFilterRole("beneficiary")}
-            >
-              <i className="fas fa-hand-holding-heart"></i>
-              Bénéficiaires{" "}
-              <span className="count">{roleCounts.beneficiary}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Status Filters */}
-        <div className="filter-group">
-          <label>Filtrer par statut</label>
-          <div className="filter-buttons">
-            <button
-              className={`filter-btn ${filterStatus === "all" ? "active" : ""}`}
-              onClick={() => setFilterStatus("all")}
-            >
-              Tous <span className="count">{statusCounts.all}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "active" ? "active" : ""}`}
-              onClick={() => setFilterStatus("active")}
-            >
-              <i className="fas fa-check-circle"></i>
-              Actifs <span className="count">{statusCounts.active}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "pending" ? "active" : ""}`}
-              onClick={() => setFilterStatus("pending")}
-            >
-              <i className="fas fa-clock"></i>
-              En attente <span className="count">{statusCounts.pending}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "suspended" ? "active" : ""}`}
-              onClick={() => setFilterStatus("suspended")}
-            >
-              <i className="fas fa-ban"></i>
-              Suspendus <span className="count">{statusCounts.suspended}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Users Table */}
-      <div className="users-table-container">
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>Utilisateur</th>
-              <th>Email</th>
-              <th>Téléphone</th>
-              <th>Rôle</th>
-              <th>Statut</th>
-              <th>Dernière connexion</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map((user) => (
-              <tr key={user.id}>
-                <td className="user-name">
-                  <div className="user-avatar">
-                    <i className="fas fa-user-circle"></i>
-                  </div>
-                  <div>
-                    <strong>{user.name}</strong>
-                    <span className="user-join-date">
-                      Inscrit le {user.joinDate}
-                    </span>
-                  </div>
-                </td>
-                <td>{user.email}</td>
-                <td>{user.phone}</td>
-                <td>
-                  <span
-                    className={`role-badge ${getRoleBadgeClass(user.role)}`}
-                  >
-                    <i
-                      className={`fas ${user.role === "admin" ? "fa-crown" : user.role === "donor" ? "fa-store" : "fa-hand-holding-heart"}`}
-                    ></i>
-                    {getRoleText(user.role)}
-                  </span>
-                </td>
-                <td>
-                  <span
-                    className={`status-badge ${getStatusBadgeClass(user.status)}`}
-                  >
-                    <i
-                      className={`fas ${user.status === "active" ? "fa-check-circle" : user.status === "pending" ? "fa-clock" : "fa-ban"}`}
-                    ></i>
-                    {getStatusText(user.status)}
-                  </span>
-                </td>
-                <td>{user.lastLogin}</td>
-                <td className="actions">
-                  <button
-                    className="btn-icon"
-                    onClick={() => handleViewDetails(user)}
-                    title="Voir détails"
-                  >
-                    <i className="fas fa-eye"></i>
-                  </button>
-                  <button
-                    className="btn-icon"
-                    onClick={() => handleResetPassword(user)}
-                    title="Réinitialiser mot de passe"
-                  >
-                    <i className="fas fa-key"></i>
-                  </button>
-                  {user.status === "pending" && user.role !== "admin" && (
-                    <button
-                      className="btn-icon approve"
-                      onClick={() => handleApprove(user.id)}
-                      title="Approuver"
-                    >
-                      <i className="fas fa-check"></i>
-                    </button>
-                  )}
-                  {user.status === "active" && user.role !== "admin" && (
-                    <button
-                      className="btn-icon suspend"
-                      onClick={() => handleSuspend(user.id)}
-                      title="Suspendre"
-                    >
-                      <i className="fas fa-ban"></i>
-                    </button>
-                  )}
-                  {user.status === "suspended" && (
-                    <button
-                      className="btn-icon activate"
-                      onClick={() => handleActivate(user.id)}
-                      title="Réactiver"
-                    >
-                      <i className="fas fa-play"></i>
-                    </button>
-                  )}
-                  <button
-                    className="btn-icon delete"
-                    onClick={() => handleDelete(user.id)}
-                    title="Supprimer"
-                  >
-                    <i className="fas fa-trash"></i>
-                  </button>
-                </td>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Utilisateur
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Email
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Rôle
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Statut
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* User Details Modal */}
-      {showDetailsModal && selectedUser && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowDetailsModal(false)}
-        >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Détails de l'utilisateur</h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="user-detail-avatar">
-                <i className="fas fa-user-circle"></i>
-                <h4>{selectedUser.name}</h4>
-                <span
-                  className={`role-badge ${getRoleBadgeClass(selectedUser.role)}`}
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredUsers.map((user) => (
+                <tr
+                  key={user.id}
+                  className="hover:bg-gray-50 transition-colors"
                 >
-                  {getRoleText(selectedUser.role)}
-                </span>
-              </div>
-              <div className="user-details-grid">
-                <div className="detail-item">
-                  <label>Email</label>
-                  <p>{selectedUser.email}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Téléphone</label>
-                  <p>{selectedUser.phone}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Statut</label>
-                  <p>
-                    <span
-                      className={`status-badge ${getStatusBadgeClass(selectedUser.status)}`}
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                        {getRoleIcon(user.role)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">{user.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {user.phone || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4 text-sm text-gray-600">{user.email}</td>
+                  <td className="p-4">
+                    <select
+                      value={user.role}
+                      onChange={(e) =>
+                        handleChangeRole(user.id, e.target.value)
+                      }
+                      className="text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
-                      {getStatusText(selectedUser.status)}
-                    </span>
-                  </p>
-                </div>
-                <div className="detail-item">
-                  <label>Date d'inscription</label>
-                  <p>{selectedUser.joinDate}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Dernière connexion</label>
-                  <p>{selectedUser.lastLogin}</p>
-                </div>
-                <div className="detail-item">
-                  <label>Actions totales</label>
-                  <p>{selectedUser.totalActions || 0}</p>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
+                      <option value="admin">Admin</option>
+                      <option value="donor">Donateur</option>
+                      <option value="beneficiary">Bénéficiaire</option>
+                    </select>
+                  </td>
+                  <td className="p-4">{getStatusBadge(user.status)}</td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
+                        <FiEye className="w-4 h-4" />
+                      </button>
+                      {user.status === "active" && (
+                        <button
+                          onClick={() => handleDeactivate(user.id)}
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg"
+                        >
+                          <FiXCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      {user.status === "suspended" && (
+                        <button
+                          onClick={() => handleActivate(user.id)}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                        >
+                          <FiCheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(user.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                      >
+                        <FiTrash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
-
-      {/* Reset Password Modal */}
-      {showResetPasswordModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowResetPasswordModal(false)}
-        >
-          <div
-            className="modal-content small"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h3>Réinitialiser le mot de passe</h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowResetPasswordModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="reset-password-info">
-                <i className="fas fa-envelope"></i>
-                <p>Un email de réinitialisation sera envoyé à :</p>
-                <strong>{resetPasswordEmail}</strong>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowResetPasswordModal(false)}
-              >
-                Annuler
-              </button>
-              <button className="btn-primary" onClick={confirmResetPassword}>
-                Envoyer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

@@ -1,22 +1,14 @@
 // src/pages/beneficiary/BenSettings.tsx
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import './BenSettings.css';
+import { useNavigate } from 'react-router-dom';
+import BenSidebar from '../../components/beneficiary/BenSidebar';
 
 const BenSettings = () => {
   const navigate = useNavigate();
-  const [activeMenu, setActiveMenu] = useState('settings');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState<'notifications' | 'preferences' | 'privacy'>('notifications');
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const menuItems = [
-    { id: 'dashboard', name: 'Dashboard', icon: '📊', path: '/beneficiary/dashboard' },
-    { id: 'surplus', name: 'Food Surplus', icon: '🍽️', path: '/beneficiary/surplus' },
-    { id: 'reservations', name: 'Reservations', icon: '📋', path: '/beneficiary/reservations' },
-    { id: 'history', name: 'History', icon: '📜', path: '/beneficiary/history' },
-    { id: 'profile', name: 'Profile', icon: '👤', path: '/beneficiary/profile' },
-    { id: 'settings', name: 'Settings', icon: '⚙️', path: '/beneficiary/settings' }
-  ];
-
-  // Notification Settings
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
@@ -26,244 +18,81 @@ const BenSettings = () => {
     newsletter: false
   });
 
-  // Preferences
   const [preferences, setPreferences] = useState({
     language: 'en',
     radius: 10,
-    theme: 'light'
+    theme: 'light',
+    dateFormat: 'DD/MM/YYYY'
   });
 
-  // Privacy
   const [privacy, setPrivacy] = useState({
     showEmail: true,
     showPhone: false,
     showLocation: true
   });
 
-  const handleNotificationChange = (key: string) => {
-    setNotifications({
-      ...notifications,
-      [key]: !notifications[key as keyof typeof notifications]
-    });
-  };
-
-  const handlePreferenceChange = (key: string, value: string | number) => {
-    setPreferences({
-      ...preferences,
-      [key]: value
-    });
-  };
-
-  const handlePrivacyChange = (key: string) => {
-    setPrivacy({
-      ...privacy,
-      [key]: !privacy[key as keyof typeof privacy]
-    });
-  };
-
   const handleSave = () => {
-    alert('Settings saved successfully!');
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
   return (
-    <div className="dashboard-wrapper">
-      {/* Sidebar */}
-      <div className="sidebar-wrapper">
-        {/* اللوجو */}
-        <Link to="/" className="sidebar-logo">
-          <i className="fas fa-leaf"></i>
-          <span>FoodShare</span>
-        </Link>
-
-        <div className="sidebar-menu">
-          {menuItems.map(item => (
-            <div
-              key={item.id}
-              className={`menu-link ${activeMenu === item.id ? 'active' : ''}`}
-              onClick={() => {
-                setActiveMenu(item.id);
-                navigate(item.path);
-              }}
-            >
-              <span className="menu-icon">{item.icon}</span>
-              <span className="menu-text">{item.name}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="sidebar-home" onClick={() => navigate('/')}>
-          <span className="menu-icon">🏠</span>
-          <span className="menu-text">Back to Home</span>
-        </div>
-
-        <div className="sidebar-logout" onClick={() => navigate('/auth')}>
-          <span className="menu-icon">🚪</span>
-          <span className="menu-text">Logout</span>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="content-wrapper">
-        <div className="settings-container">
-          <div className="settings-header">
-            <h1>⚙️ Settings</h1>
-            <p>Manage your account preferences and notifications</p>
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <BenSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+      
+      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+        <div className="p-6">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-primary-600 to-secondary-500 rounded-2xl p-6 mb-6 text-white">
+            <h1 className="text-2xl font-bold">⚙️ Settings</h1>
+            <p className="opacity-90">Manage your account preferences and notifications</p>
           </div>
 
-          {/* Notifications Section */}
-          <div className="settings-card">
-            <h3>
-              <i className="fas fa-bell"></i> Notifications
-            </h3>
-            <div className="settings-list">
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Email Notifications</span>
-                  <span className="setting-desc">Receive updates via email</span>
-                </div>
-                <label className="switch">
-                  <input type="checkbox" checked={notifications.email} onChange={() => handleNotificationChange('email')} />
-                  <span className="slider"></span>
-                </label>
-              </div>
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Push Notifications</span>
-                  <span className="setting-desc">Get instant alerts on your device</span>
-                </div>
-                <label className="switch">
-                  <input type="checkbox" checked={notifications.push} onChange={() => handleNotificationChange('push')} />
-                  <span className="slider"></span>
-                </label>
-              </div>
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Reservation Alerts</span>
-                  <span className="setting-desc">Get notified about your reservations</span>
-                </div>
-                <label className="switch">
-                  <input type="checkbox" checked={notifications.reservationAlerts} onChange={() => handleNotificationChange('reservationAlerts')} />
-                  <span className="slider"></span>
-                </label>
-              </div>
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Expiry Alerts</span>
-                  <span className="setting-desc">Reminders for expiring food items</span>
-                </div>
-                <label className="switch">
-                  <input type="checkbox" checked={notifications.expiryAlerts} onChange={() => handleNotificationChange('expiryAlerts')} />
-                  <span className="slider"></span>
-                </label>
-              </div>
+          {/* Save Success Toast */}
+          {saveSuccess && (
+            <div className="fixed top-20 right-6 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeInUp">
+              ✅ Settings saved successfully!
             </div>
+          )}
+
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6 border-b border-gray-200 pb-2">
+            <button onClick={() => setActiveTab('notifications')} className={`px-4 py-2 rounded-lg transition-all ${activeTab === 'notifications' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>🔔 Notifications</button>
+            <button onClick={() => setActiveTab('preferences')} className={`px-4 py-2 rounded-lg transition-all ${activeTab === 'preferences' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>🎨 Preferences</button>
+            <button onClick={() => setActiveTab('privacy')} className={`px-4 py-2 rounded-lg transition-all ${activeTab === 'privacy' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>🔒 Privacy</button>
           </div>
 
-          {/* Preferences Section */}
-          <div className="settings-card">
-            <h3>
-              <i className="fas fa-sliders-h"></i> Preferences
-            </h3>
-            <div className="settings-list">
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Language</span>
-                  <span className="setting-desc">Choose your preferred language</span>
-                </div>
-                <select 
-                  className="setting-select" 
-                  value={preferences.language}
-                  onChange={(e) => handlePreferenceChange('language', e.target.value)}
-                >
-                  <option value="en">English</option>
-                  <option value="fr">Français</option>
-                  <option value="ar">العربية</option>
-                </select>
-              </div>
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Search Radius</span>
-                  <span className="setting-desc">Maximum distance for food surplus search</span>
-                </div>
-                <div className="radius-control">
-                  <input 
-                    type="range" 
-                    min="1" 
-                    max="50" 
-                    value={preferences.radius}
-                    onChange={(e) => handlePreferenceChange('radius', parseInt(e.target.value))}
-                  />
-                  <span className="radius-value">{preferences.radius} km</span>
-                </div>
-              </div>
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Theme</span>
-                  <span className="setting-desc">Choose your theme preference</span>
-                </div>
-                <div className="theme-buttons">
-                  <button 
-                    className={`theme-btn ${preferences.theme === 'light' ? 'active' : ''}`}
-                    onClick={() => handlePreferenceChange('theme', 'light')}
-                  >
-                    <i className="fas fa-sun"></i> Light
-                  </button>
-                  <button 
-                    className={`theme-btn ${preferences.theme === 'dark' ? 'active' : ''}`}
-                    onClick={() => handlePreferenceChange('theme', 'dark')}
-                  >
-                    <i className="fas fa-moon"></i> Dark
-                  </button>
-                </div>
-              </div>
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <div className="bg-white rounded-2xl p-6 shadow-md space-y-4">
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"><div><span className="font-medium">📧 Email Notifications</span><p className="text-xs text-gray-500">Receive updates via email</p></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={notifications.email} onChange={() => setNotifications({...notifications, email: !notifications.email})} className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div></label></div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"><div><span className="font-medium">📱 Push Notifications</span><p className="text-xs text-gray-500">Get instant alerts on your device</p></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={notifications.push} onChange={() => setNotifications({...notifications, push: !notifications.push})} className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div></label></div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"><div><span className="font-medium">💬 SMS Notifications</span><p className="text-xs text-gray-500">Receive text message alerts</p></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={notifications.sms} onChange={() => setNotifications({...notifications, sms: !notifications.sms})} className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div></label></div>
             </div>
-          </div>
+          )}
 
-          {/* Privacy Section */}
-          <div className="settings-card">
-            <h3>
-              <i className="fas fa-lock"></i> Privacy
-            </h3>
-            <div className="settings-list">
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Show Email</span>
-                  <span className="setting-desc">Display your email to donors</span>
-                </div>
-                <label className="switch">
-                  <input type="checkbox" checked={privacy.showEmail} onChange={() => handlePrivacyChange('showEmail')} />
-                  <span className="slider"></span>
-                </label>
-              </div>
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Show Phone</span>
-                  <span className="setting-desc">Display your phone number to donors</span>
-                </div>
-                <label className="switch">
-                  <input type="checkbox" checked={privacy.showPhone} onChange={() => handlePrivacyChange('showPhone')} />
-                  <span className="slider"></span>
-                </label>
-              </div>
-              <div className="setting-item">
-                <div className="setting-info">
-                  <span className="setting-title">Show Location</span>
-                  <span className="setting-desc">Display your location for food pickup</span>
-                </div>
-                <label className="switch">
-                  <input type="checkbox" checked={privacy.showLocation} onChange={() => handlePrivacyChange('showLocation')} />
-                  <span className="slider"></span>
-                </label>
-              </div>
+          {/* Preferences Tab */}
+          {activeTab === 'preferences' && (
+            <div className="bg-white rounded-2xl p-6 shadow-md space-y-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">🌐 Language</label><select value={preferences.language} onChange={(e) => setPreferences({...preferences, language: e.target.value})} className="w-full p-3 border border-gray-200 rounded-lg"><option value="en">English</option><option value="fr">Français</option><option value="ar">العربية</option></select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">📍 Search Radius (km)</label><div className="flex items-center gap-3"><input type="range" min="1" max="50" value={preferences.radius} onChange={(e) => setPreferences({...preferences, radius: parseInt(e.target.value)})} className="flex-1"/><span className="text-secondary-500 font-semibold">{preferences.radius} km</span></div></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">🎨 Theme</label><div className="flex gap-3"><button onClick={() => setPreferences({...preferences, theme: 'light'})} className={`flex-1 py-2 rounded-lg ${preferences.theme === 'light' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'}`}>☀️ Light</button><button onClick={() => setPreferences({...preferences, theme: 'dark'})} className={`flex-1 py-2 rounded-lg ${preferences.theme === 'dark' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'}`}>🌙 Dark</button></div></div>
             </div>
-          </div>
+          )}
+
+          {/* Privacy Tab */}
+          {activeTab === 'privacy' && (
+            <div className="bg-white rounded-2xl p-6 shadow-md space-y-4">
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"><div><span className="font-medium">📧 Show Email</span><p className="text-xs text-gray-500">Display your email to donors</p></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={privacy.showEmail} onChange={() => setPrivacy({...privacy, showEmail: !privacy.showEmail})} className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div></label></div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"><div><span className="font-medium">📞 Show Phone</span><p className="text-xs text-gray-500">Display your phone number to donors</p></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={privacy.showPhone} onChange={() => setPrivacy({...privacy, showPhone: !privacy.showPhone})} className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div></label></div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"><div><span className="font-medium">📍 Show Location</span><p className="text-xs text-gray-500">Display your location for food pickup</p></div><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={privacy.showLocation} onChange={() => setPrivacy({...privacy, showLocation: !privacy.showLocation})} className="sr-only peer"/><div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div></label></div>
+            </div>
+          )}
 
           {/* Save Button */}
-          <button className="save-settings-btn" onClick={handleSave}>
-            <i className="fas fa-save"></i> Save All Settings
-          </button>
+          <button onClick={handleSave} className="w-full mt-6 bg-secondary-500 text-white py-3 rounded-xl font-semibold hover:bg-secondary-600 transition-all">💾 Save All Settings</button>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

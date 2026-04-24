@@ -1,644 +1,413 @@
 // pages/admin/Donors.tsx
-import React, { useState } from "react";
-import "./Donor.css";
+import React, { useState, useEffect } from "react";
+import {
+  FiSearch,
+  FiEye,
+  FiCheckCircle,
+  FiXCircle,
+  FiTrash2,
+  FiPlus,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiCalendar,
+  FiPackage,
+  FiUser,
+  FiRefreshCw,
+} from "react-icons/fi";
+import { FaStore, FaBuilding } from "react-icons/fa";
+import {
+  getUsers,
+  verifyDonor,
+  deleteUser,
+  activateUser,
+  deactivateUser,
+} from "../../lib/API";
+import toast from "react-hot-toast";
 
 interface Donor {
-  id: number;
-  businessName: string;
-  businessType: string;
-  contactName: string;
+  id: string;
+  name: string;
   email: string;
   phone: string;
   address: string;
   wilaya: string;
   status: "active" | "pending" | "suspended";
-  taxId: string;
-  joinDate: string;
   totalDonated: number;
-  lastDonation: string;
-  totalListings: number;
-  description?: string;
+  createdAt: string;
+  donorProfile?: {
+    organizationName: string;
+    businessType: string;
+    isVerified: boolean;
+  };
 }
 
 const Donors: React.FC = () => {
-  const [donors, setDonors] = useState<Donor[]>([
-    {
-      id: 1,
-      businessName: "Artisan Bakery",
-      businessType: "Boulangerie",
-      contactName: "Ahmed Benali",
-      email: "contact@artisan.dz",
-      phone: "+213 555 123 456",
-      address: "123 Rue Didouche, Alger",
-      wilaya: "16",
-      status: "active",
-      taxId: "123456789",
-      joinDate: "2025-01-15",
-      totalDonated: 450,
-      lastDonation: "2025-03-25",
-      totalListings: 12,
-      description: "Boulangerie artisanale depuis 1990",
-    },
-    {
-      id: 2,
-      businessName: "Supermarket El Djazair",
-      businessType: "Supermarché",
-      contactName: "Karim Said",
-      email: "karim@supermarket.dz",
-      phone: "+213 555 345 678",
-      address: "45 Boulevard Krim Belkacem, Alger",
-      wilaya: "16",
-      status: "pending",
-      taxId: "987654321",
-      joinDate: "2025-03-20",
-      totalDonated: 0,
-      lastDonation: "-",
-      totalListings: 0,
-      description: "Supermarket avec rayon fruits et légumes",
-    },
-    {
-      id: 3,
-      businessName: "Restaurant Le Jardin",
-      businessType: "Restaurant",
-      contactName: "Nadia Bensalem",
-      email: "nadia@lejardin.dz",
-      phone: "+213 555 901 234",
-      address: "12 Rue Larbi Ben Mhidi, Oran",
-      wilaya: "31",
-      status: "active",
-      taxId: "456789123",
-      joinDate: "2025-02-10",
-      totalDonated: 280,
-      lastDonation: "2025-03-24",
-      totalListings: 8,
-      description: "Restaurant traditionnel algérien",
-    },
-  ]);
-
+  const [donors, setDonors] = useState<Donor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "active" | "pending" | "suspended"
-  >("all");
-  const [filterWilaya, setFilterWilaya] = useState<string>("all");
-  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedDonor, setSelectedDonor] = useState<Donor | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showDonationsModal, setShowDonationsModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  const wilayas = [
-    { code: "16", name: "Alger" },
-    { code: "31", name: "Oran" },
-    { code: "23", name: "Annaba" },
-    { code: "13", name: "Tlemcen" },
-    { code: "15", name: "Tizi Ouzou" },
-  ];
+  const fetchDonors = async () => {
+    try {
+      setLoading(true);
+      const res = await getUsers();
+      const donorsList = (res.users || []).filter(
+        (user: any) => user.role === "donor",
+      );
+      setDonors(donorsList);
+    } catch (error) {
+      console.error("Failed to fetch donors:", error);
+      toast.error("Could not load donors");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const businessTypes = [
-    { value: "all", label: "Tous les types" },
-    { value: "Boulangerie", label: "Boulangerie" },
-    { value: "Supermarché", label: "Supermarché" },
-    { value: "Restaurant", label: "Restaurant" },
-    { value: "Catering", label: "Traiteur" },
-    { value: "Hotel", label: "Hôtel" },
-    { value: "other", label: "Autre" },
-  ];
+  useEffect(() => {
+    fetchDonors();
+  }, []);
 
-  const statusCounts = {
-    all: donors.length,
+  const handleVerify = async (id: string) => {
+    try {
+      await verifyDonor(id);
+      toast.success("Donor verified successfully");
+      fetchDonors();
+    } catch (error) {
+      toast.error("Failed to verify donor");
+    }
+  };
+
+  const handleActivate = async (id: string) => {
+    try {
+      await activateUser(id);
+      toast.success("Donor activated");
+      fetchDonors();
+    } catch (error) {
+      toast.error("Failed to activate donor");
+    }
+  };
+
+  const handleDeactivate = async (id: string) => {
+    try {
+      await deactivateUser(id);
+      toast.success("Donor deactivated");
+      fetchDonors();
+    } catch (error) {
+      toast.error("Failed to deactivate donor");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this donor?")) {
+      try {
+        await deleteUser(id);
+        toast.success("Donor deleted");
+        fetchDonors();
+      } catch (error) {
+        toast.error("Failed to delete donor");
+      }
+    }
+  };
+
+  const filteredDonors = donors.filter((donor) => {
+    const matchesSearch =
+      donor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      donor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (donor.donorProfile?.organizationName || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      filterStatus === "all" || donor.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  const stats = {
+    total: donors.length,
     active: donors.filter((d) => d.status === "active").length,
     pending: donors.filter((d) => d.status === "pending").length,
     suspended: donors.filter((d) => d.status === "suspended").length,
   };
 
-  const filteredDonors = donors.filter((donor) => {
-    const matchesSearch =
-      donor.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      donor.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      donor.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      filterStatus === "all" || donor.status === filterStatus;
-    const matchesWilaya =
-      filterWilaya === "all" || donor.wilaya === filterWilaya;
-    const matchesType =
-      filterType === "all" || donor.businessType === filterType;
-    return matchesSearch && matchesStatus && matchesWilaya && matchesType;
-  });
-
-  const handleApprove = (id: number) => {
-    setDonors(
-      donors.map((donor) =>
-        donor.id === id ? { ...donor, status: "active" as const } : donor,
-      ),
-    );
-  };
-
-  const handleSuspend = (id: number) => {
-    if (confirm("Êtes-vous sûr de vouloir suspendre ce donateur ?")) {
-      setDonors(
-        donors.map((donor) =>
-          donor.id === id ? { ...donor, status: "suspended" as const } : donor,
-        ),
-      );
-    }
-  };
-
-  const handleActivate = (id: number) => {
-    setDonors(
-      donors.map((donor) =>
-        donor.id === id ? { ...donor, status: "active" as const } : donor,
-      ),
-    );
-  };
-
-  const handleDelete = (id: number) => {
-    if (
-      confirm(
-        "Êtes-vous sûr de vouloir supprimer ce donateur ? Cette action est irréversible.",
-      )
-    ) {
-      setDonors(donors.filter((donor) => donor.id !== id));
-    }
-  };
-
-  const handleViewDetails = (donor: Donor) => {
-    setSelectedDonor(donor);
-    setShowDetailsModal(true);
-  };
-
-  const handleViewDonations = (donor: Donor) => {
-    setSelectedDonor(donor);
-    setShowDonationsModal(true);
-  };
-
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return "status-active";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+            <FiCheckCircle className="w-3 h-3" /> Actif
+          </span>
+        );
       case "pending":
-        return "status-pending";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+            <FiXCircle className="w-3 h-3" /> En attente
+          </span>
+        );
       case "suspended":
-        return "status-suspended";
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+            <FiXCircle className="w-3 h-3" /> Suspendu
+          </span>
+        );
       default:
-        return "";
+        return null;
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "active":
-        return "Actif";
-      case "pending":
-        return "En attente";
-      case "suspended":
-        return "Suspendu";
-      default:
-        return status;
-    }
-  };
-
-  const getBusinessTypeIcon = (type: string) => {
-    switch (type) {
-      case "Boulangerie":
-        return "fa-bread-slice";
-      case "Supermarché":
-        return "fa-shopping-cart";
-      case "Restaurant":
-        return "fa-utensils";
-      case "Catering":
-        return "fa-concierge-bell";
-      case "Hotel":
-        return "fa-hotel";
-      default:
-        return "fa-store";
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="donors-page">
-      {/* Header */}
-      <div className="page-header">
-        <div className="header-left">
-          <h2>Gestion des Donateurs</h2>
-          <p>{filteredDonors.length} donateurs trouvés</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Donateurs</h1>
+          <p className="text-gray-500 mt-1">
+            Gérez les commerces et entreprises donateurs
+          </p>
         </div>
-        <div className="header-actions">
-          <button className="btn-outline">
-            <i className="fas fa-download"></i>
-            Exporter
+        <div className="flex gap-2">
+          <button
+            onClick={fetchDonors}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
+          >
+            <FiRefreshCw className="w-4 h-4" />
+            Actualiser
           </button>
-          <button className="btn-primary">
-            <i className="fas fa-plus"></i>
-            Ajouter Donateur
+          <button className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition">
+            <FiPlus className="w-4 h-4" />
+            Ajouter un donateur
           </button>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="search-bar">
-        <div className="search-box">
-          <i className="fas fa-search"></i>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+          <p className="text-sm text-gray-500">Total donateurs</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+          <p className="text-sm text-gray-500">Actifs</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
+          <p className="text-sm text-gray-500">En attente</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <p className="text-2xl font-bold text-red-600">{stats.suspended}</p>
+          <p className="text-sm text-gray-500">Suspendus</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 relative">
+          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Rechercher par nom d'entreprise, contact ou email..."
+            placeholder="Rechercher par nom, organisation ou email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <option value="all">Tous les statuts</option>
+          <option value="active">Actifs</option>
+          <option value="pending">En attente</option>
+          <option value="suspended">Suspendus</option>
+        </select>
       </div>
 
-      {/* Filters */}
-      <div className="filters-section">
-        <div className="filter-group">
-          <label>Statut</label>
-          <div className="filter-buttons">
-            <button
-              className={`filter-btn ${filterStatus === "all" ? "active" : ""}`}
-              onClick={() => setFilterStatus("all")}
-            >
-              Tous <span className="count">{statusCounts.all}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "active" ? "active" : ""}`}
-              onClick={() => setFilterStatus("active")}
-            >
-              <i className="fas fa-check-circle"></i>
-              Actifs <span className="count">{statusCounts.active}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "pending" ? "active" : ""}`}
-              onClick={() => setFilterStatus("pending")}
-            >
-              <i className="fas fa-clock"></i>
-              En attente <span className="count">{statusCounts.pending}</span>
-            </button>
-            <button
-              className={`filter-btn ${filterStatus === "suspended" ? "active" : ""}`}
-              onClick={() => setFilterStatus("suspended")}
-            >
-              <i className="fas fa-ban"></i>
-              Suspendus <span className="count">{statusCounts.suspended}</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="filter-row">
-          <div className="filter-group">
-            <label>Wilaya</label>
-            <select
-              className="filter-select"
-              value={filterWilaya}
-              onChange={(e) => setFilterWilaya(e.target.value)}
-            >
-              <option value="all">Toutes les wilayas</option>
-              {wilayas.map((w) => (
-                <option key={w.code} value={w.code}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Type d'entreprise</label>
-            <select
-              className="filter-select"
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-            >
-              {businessTypes.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Donors Table */}
-      <div className="donors-table-container">
-        <table className="donors-table">
-          <thead>
-            <tr>
-              <th>Entreprise</th>
-              <th>Contact</th>
-              <th>Type</th>
-              <th>Wilaya</th>
-              <th>Total Donné</th>
-              <th>Dernier don</th>
-              <th>Statut</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredDonors.map((donor) => (
-              <tr key={donor.id}>
-                <td className="business-cell">
-                  <div className="business-info">
-                    <div className="business-icon">
-                      <i
-                        className={`fas ${getBusinessTypeIcon(donor.businessType)}`}
-                      ></i>
-                    </div>
-                    <div>
-                      <strong>{donor.businessName}</strong>
-                      <span className="business-meta">
-                        {donor.totalListings} annonces
-                      </span>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div className="contact-info">
-                    <strong>{donor.contactName}</strong>
-                    <span className="contact-email">{donor.email}</span>
-                  </div>
-                </td>
-                <td>
-                  <span className="business-type-badge">
-                    {donor.businessType}
-                  </span>
-                </td>
-                <td>
-                  {wilayas.find((w) => w.code === donor.wilaya)?.name ||
-                    donor.wilaya}
-                </td>
-                <td className="donated-amount">
-                  <strong>{donor.totalDonated} kg</strong>
-                </td>
-                <td>{donor.lastDonation}</td>
-                <td>
-                  <span
-                    className={`status-badge ${getStatusBadgeClass(donor.status)}`}
-                  >
-                    <i
-                      className={`fas ${donor.status === "active" ? "fa-check-circle" : donor.status === "pending" ? "fa-clock" : "fa-ban"}`}
-                    ></i>
-                    {getStatusText(donor.status)}
-                  </span>
-                </td>
-                <td className="actions">
-                  <button
-                    className="btn-icon"
-                    onClick={() => handleViewDetails(donor)}
-                    title="Voir détails"
-                  >
-                    <i className="fas fa-eye"></i>
-                  </button>
-                  <button
-                    className="btn-icon"
-                    onClick={() => handleViewDonations(donor)}
-                    title="Voir les dons"
-                  >
-                    <i className="fas fa-chart-line"></i>
-                  </button>
-                  {donor.status === "pending" && (
-                    <button
-                      className="btn-icon approve"
-                      onClick={() => handleApprove(donor.id)}
-                      title="Approuver"
-                    >
-                      <i className="fas fa-check"></i>
-                    </button>
-                  )}
-                  {donor.status === "active" && (
-                    <button
-                      className="btn-icon suspend"
-                      onClick={() => handleSuspend(donor.id)}
-                      title="Suspendre"
-                    >
-                      <i className="fas fa-ban"></i>
-                    </button>
-                  )}
-                  {donor.status === "suspended" && (
-                    <button
-                      className="btn-icon activate"
-                      onClick={() => handleActivate(donor.id)}
-                      title="Réactiver"
-                    >
-                      <i className="fas fa-play"></i>
-                    </button>
-                  )}
-                  <button
-                    className="btn-icon delete"
-                    onClick={() => handleDelete(donor.id)}
-                    title="Supprimer"
-                  >
-                    <i className="fas fa-trash"></i>
-                  </button>
-                </td>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Entreprise
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Contact
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Wilaya
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Statut
+                </th>
+                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredDonors.map((donor) => (
+                <tr
+                  key={donor.id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                        <FaStore className="w-5 h-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {donor.donorProfile?.organizationName || donor.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {donor.donorProfile?.businessType || "Commerce"}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <p className="font-medium text-gray-800">{donor.name}</p>
+                    <p className="text-xs text-gray-500">{donor.email}</p>
+                  </td>
+                  <td className="p-4 text-gray-600">{donor.wilaya || "-"}</td>
+                  <td className="p-4">{getStatusBadge(donor.status)}</td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedDonor(donor);
+                          setShowModal(true);
+                        }}
+                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition"
+                      >
+                        <FiEye className="w-4 h-4" />
+                      </button>
+                      {donor.donorProfile?.isVerified === false && (
+                        <button
+                          onClick={() => handleVerify(donor.id)}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                        >
+                          <FiCheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      {donor.status === "active" && (
+                        <button
+                          onClick={() => handleDeactivate(donor.id)}
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                        >
+                          <FiXCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      {donor.status === "suspended" && (
+                        <button
+                          onClick={() => handleActivate(donor.id)}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                        >
+                          <FiCheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(donor.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                      >
+                        <FiTrash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Donor Details Modal */}
-      {showDetailsModal && selectedDonor && (
+      {/* Modal */}
+      {showModal && selectedDonor && (
         <div
-          className="modal-overlay"
-          onClick={() => setShowDetailsModal(false)}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(false)}
         >
           <div
-            className="modal-content large"
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-header">
-              <h3>Détails du Donateur</h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Détails du donateur
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <FiXCircle className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
             </div>
-            <div className="modal-body">
-              <div className="donor-detail-header">
-                <div className="donor-icon-large">
-                  <i
-                    className={`fas ${getBusinessTypeIcon(selectedDonor.businessType)}`}
-                  ></i>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
+                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                  <FaStore className="w-8 h-8 text-emerald-600" />
                 </div>
                 <div>
-                  <h4>{selectedDonor.businessName}</h4>
-                  <span
-                    className={`status-badge ${getStatusBadgeClass(selectedDonor.status)}`}
-                  >
-                    {getStatusText(selectedDonor.status)}
-                  </span>
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    {selectedDonor.donorProfile?.organizationName ||
+                      selectedDonor.name}
+                  </h3>
+                  <p className="text-gray-500">
+                    {selectedDonor.donorProfile?.businessType || "Donateur"}
+                  </p>
                 </div>
               </div>
-              <div className="details-grid">
-                <div className="detail-section">
-                  <h5>Informations de l'entreprise</h5>
-                  <div className="detail-row">
-                    <span className="detail-label">Type d'entreprise:</span>
-                    <span>{selectedDonor.businessType}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">
-                      N° Identification fiscale:
-                    </span>
-                    <span>{selectedDonor.taxId}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Description:</span>
-                    <span>{selectedDonor.description || "Non renseigné"}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-3">
+                  <FiUser className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Contact</p>
+                    <p className="text-gray-800">{selectedDonor.name}</p>
                   </div>
                 </div>
-                <div className="detail-section">
-                  <h5>Informations de contact</h5>
-                  <div className="detail-row">
-                    <span className="detail-label">Personne de contact:</span>
-                    <span>{selectedDonor.contactName}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Email:</span>
-                    <span>{selectedDonor.email}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Téléphone:</span>
-                    <span>{selectedDonor.phone}</span>
+                <div className="flex items-center gap-3">
+                  <FiMail className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Email</p>
+                    <p className="text-gray-800">{selectedDonor.email}</p>
                   </div>
                 </div>
-                <div className="detail-section">
-                  <h5>Adresse</h5>
-                  <div className="detail-row">
-                    <span className="detail-label">Adresse:</span>
-                    <span>{selectedDonor.address}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Wilaya:</span>
-                    <span>
-                      {
-                        wilayas.find((w) => w.code === selectedDonor.wilaya)
-                          ?.name
-                      }
-                    </span>
+                <div className="flex items-center gap-3">
+                  <FiPhone className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Téléphone</p>
+                    <p className="text-gray-800">{selectedDonor.phone}</p>
                   </div>
                 </div>
-                <div className="detail-section">
-                  <h5>Statistiques</h5>
-                  <div className="detail-row">
-                    <span className="detail-label">Date d'inscription:</span>
-                    <span>{selectedDonor.joinDate}</span>
+                <div className="flex items-center gap-3">
+                  <FiMapPin className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Wilaya</p>
+                    <p className="text-gray-800">
+                      {selectedDonor.wilaya || "-"}
+                    </p>
                   </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Total donné:</span>
-                    <span className="highlight">
-                      {selectedDonor.totalDonated} kg
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Dernier don:</span>
-                    <span>{selectedDonor.lastDonation}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Annonces publiées:</span>
-                    <span>{selectedDonor.totalListings}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <FiCalendar className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Date d'inscription</p>
+                    <p className="text-gray-800">
+                      {new Date(selectedDonor.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowDetailsModal(false)}
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Donations History Modal */}
-      {showDonationsModal && selectedDonor && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowDonationsModal(false)}
-        >
-          <div
-            className="modal-content large"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h3>Historique des dons - {selectedDonor.businessName}</h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowDonationsModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="donations-stats">
-                <div className="stat-summary">
-                  <div className="stat-item">
-                    <span className="stat-value">
-                      {selectedDonor.totalDonated} kg
-                    </span>
-                    <span className="stat-label">Total donné</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">
-                      {selectedDonor.totalListings}
-                    </span>
-                    <span className="stat-label">Annonces</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">
-                      {selectedDonor.lastDonation}
-                    </span>
-                    <span className="stat-label">Dernier don</span>
-                  </div>
-                </div>
-                <div className="donations-table-container">
-                  <table className="donations-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Produit</th>
-                        <th>Quantité</th>
-                        <th>Bénéficiaire</th>
-                        <th>Statut</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>25-03-2025</td>
-                        <td>Baguettes</td>
-                        <td>50 unités</td>
-                        <td>Food Bank Algiers</td>
-                        <td>
-                          <span className="status-badge status-active">
-                            Distribué
-                          </span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>20-03-2025</td>
-                        <td>Pains complets</td>
-                        <td>30 unités</td>
-                        <td>Association Solidarité</td>
-                        <td>
-                          <span className="status-badge status-active">
-                            Distribué
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowDonationsModal(false)}
-              >
-                Fermer
-              </button>
             </div>
           </div>
         </div>
