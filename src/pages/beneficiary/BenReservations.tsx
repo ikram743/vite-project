@@ -1,59 +1,131 @@
-import React, { useState } from 'react';
+// src/pages/beneficiary/BenReservations.tsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BenSidebar from '../../components/beneficiary/BenSidebar';
-import { FaCheckCircle, FaClock, FaMapMarkerAlt, FaCalendar, FaStore } from 'react-icons/fa';
+import { FaSpinner, FaStore, FaBox, FaCalendarAlt, FaMapMarkerAlt, FaEye } from 'react-icons/fa';
+import { getMyRequests } from '../../lib/API';
+import toast from 'react-hot-toast';
 
-interface Reservation {
-  id: number;
-  food: string;
-  donor: string;
-  date: string;
-  time: string;
-  status: 'confirmed' | 'pending' | 'completed' | 'cancelled';
-  code: string;
-  pickupLocation: string;
+interface Request {
+  id: string;
+  donation: {
+    id: string;
+    foodType: string;
+    unit: string;
+    pickupAddress: string;
+    pickupTime?: string;
+    donor: {
+      user: {
+        name: string;
+      };
+    };
+  };
+  requestedQuantity: number;
+  status: string;
+  requestDate: string;
+  notes?: string;
 }
 
 const BenReservations = () => {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'confirmed' | 'pending' | 'completed'>('all');
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const [error, setError] = useState<string | null>(null);
 
-  const reservations: Reservation[] = [
-    { id: 1, food: 'Ready Meals', donor: 'Restaurant El Djazair', date: '2024-12-20', time: '14:00', status: 'confirmed', code: 'RES-001', pickupLocation: 'Alger Centre' },
-    { id: 2, food: 'Fresh Bread', donor: 'Boulangerie Nour', date: '2024-12-21', time: '10:00', status: 'pending', code: 'RES-002', pickupLocation: 'Oran' },
-    { id: 3, food: 'Vegetables', donor: 'Marché El Fellah', date: '2024-12-19', time: '09:00', status: 'completed', code: 'RES-003', pickupLocation: 'Constantine' },
-    { id: 4, food: 'Fruits', donor: 'Fresh Market Algiers', date: '2024-12-22', time: '11:00', status: 'confirmed', code: 'RES-004', pickupLocation: 'Bab Ezzouar' },
-  ];
+  useEffect(() => {
+    loadRequests();
+  }, []);
 
-  const filteredReservations = filter === 'all' ? reservations : reservations.filter(r => r.status === filter);
-  
+  const loadRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getMyRequests();
+      console.log('Requests response:', response);
+      
+      let requestsData = [];
+      if (response && response.requests) {
+        requestsData = response.requests;
+      } else if (response && response.data) {
+        requestsData = response.data;
+      } else if (Array.isArray(response)) {
+        requestsData = response;
+      }
+      
+      setRequests(requestsData);
+    } catch (err: any) {
+      console.error('Error loading requests:', err);
+      setError(err.message || 'Failed to load reservations');
+      toast.error('Failed to load reservations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'confirmed': return 'bg-green-100 text-green-700';
-      case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'completed': return 'bg-blue-100 text-blue-700';
-      case 'cancelled': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'APPROVED': return 'bg-green-100 text-green-700';
+      case 'PENDING': return 'bg-green-100 text-green-700';
+      case 'REJECTED': return 'bg-green-100 text-green-700';
+      case 'COLLECTED':
+      case 'COMPLETED':
+      case 'DELIVERED': return 'bg-green-100 text-green-700';
+      case 'CANCELLED': return 'bg-green-100 text-green-700';
+      default: return 'bg-green-100 text-green-700';
     }
   };
 
   const getStatusText = (status: string) => {
     switch(status) {
-      case 'confirmed': return 'Confirmed';
-      case 'pending': return 'Pending';
-      case 'completed': return 'Completed';
-      case 'cancelled': return 'Cancelled';
+      case 'APPROVED': return 'Approved';
+      case 'PENDING': return 'Pending';
+      case 'REJECTED': return 'Rejected';
+      case 'COLLECTED': return 'Collected';
+      case 'COMPLETED': return 'Completed';
+      case 'DELIVERED': return 'Delivered';
+      case 'CANCELLED': return 'Cancelled';
       default: return status;
     }
   };
 
-  const stats = {
-    total: reservations.length,
-    confirmed: reservations.filter(r => r.status === 'confirmed').length,
-    pending: reservations.filter(r => r.status === 'pending').length,
-    completed: reservations.filter(r => r.status === 'completed').length,
+  const getStatusBadgeClass = (status: string) => {
+    return 'bg-green-100 text-green-700 border-green-200';
   };
+
+  const filteredRequests = requests.filter(req => {
+    if (filter === 'all') return true;
+    if (filter === 'pending') return req.status === 'PENDING';
+    if (filter === 'approved') return req.status === 'APPROVED';
+    if (filter === 'completed') return req.status === 'COLLECTED' || req.status === 'COMPLETED';
+    if (filter === 'rejected') return req.status === 'REJECTED';
+    return true;
+  });
+
+  const stats = {
+    total: requests.length,
+    pending: requests.filter(r => r.status === 'PENDING').length,
+    approved: requests.filter(r => r.status === 'APPROVED').length,
+    collected: requests.filter(r => r.status === 'COLLECTED' || r.status === 'COMPLETED').length,
+    rejected: requests.filter(r => r.status === 'REJECTED').length,
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <BenSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+        <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <FaSpinner className="animate-spin text-4xl text-green-600 mx-auto mb-4" />
+              <p className="text-gray-500">Loading your reservations...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -61,127 +133,166 @@ const BenReservations = () => {
       
       <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
         <div className="p-6">
-          {/* Header */}
           <div className="mb-6">
+            <div className="flex items-center gap-2 text-green-600 mb-1">
+              <FaCalendarAlt className="text-sm" />
+              <span className="text-xs font-medium uppercase tracking-wide">Reservations</span>
+            </div>
             <h1 className="text-2xl font-bold text-gray-800">My Reservations</h1>
             <p className="text-gray-500 mt-1">View and manage your food reservations</p>
           </div>
 
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
-              <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+              {error}
+              <button onClick={loadRequests} className="ml-3 underline">Try again</button>
+            </div>
+          )}
+
+          {/* Stats Cards - كلها خضراء */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+            <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-green-100">
+              <div className="text-2xl font-bold text-green-600">{stats.total}</div>
               <div className="text-sm text-gray-500">Total</div>
             </div>
-            <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
-              <div className="text-2xl font-bold text-green-600">{stats.confirmed}</div>
-              <div className="text-sm text-gray-500">Confirmed</div>
-            </div>
-            <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
-              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-green-100">
+              <div className="text-2xl font-bold text-green-600">{stats.pending}</div>
               <div className="text-sm text-gray-500">Pending</div>
             </div>
-            <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
-              <div className="text-2xl font-bold text-blue-600">{stats.completed}</div>
-              <div className="text-sm text-gray-500">Completed</div>
+            <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-green-100">
+              <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
+              <div className="text-sm text-gray-500">Approved</div>
+            </div>
+            <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-green-100">
+              <div className="text-2xl font-bold text-green-600">{stats.collected}</div>
+              <div className="text-sm text-gray-500">Collected</div>
+            </div>
+            <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-green-100">
+              <div className="text-2xl font-bold text-green-600">{stats.rejected}</div>
+              <div className="text-sm text-gray-500">Rejected</div>
             </div>
           </div>
 
-          {/* Filter Tabs */}
+          {/* Filter Buttons - كلها خضراء */}
           <div className="flex gap-2 mb-6 flex-wrap">
             <button 
               onClick={() => setFilter('all')} 
-              className={`px-4 py-2 rounded-lg transition-all text-sm ${filter === 'all' ? 'bg-gray-800 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                filter === 'all' ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-green-50 border border-green-200'
+              }`}
             >
               All ({stats.total})
             </button>
             <button 
-              onClick={() => setFilter('confirmed')} 
-              className={`px-4 py-2 rounded-lg transition-all text-sm ${filter === 'confirmed' ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
-            >
-              Confirmed ({stats.confirmed})
-            </button>
-            <button 
               onClick={() => setFilter('pending')} 
-              className={`px-4 py-2 rounded-lg transition-all text-sm ${filter === 'pending' ? 'bg-yellow-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                filter === 'pending' ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-green-50 border border-green-200'
+              }`}
             >
               Pending ({stats.pending})
             </button>
             <button 
-              onClick={() => setFilter('completed')} 
-              className={`px-4 py-2 rounded-lg transition-all text-sm ${filter === 'completed' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
+              onClick={() => setFilter('approved')} 
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                filter === 'approved' ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-green-50 border border-green-200'
+              }`}
             >
-              Completed ({stats.completed})
+              Approved ({stats.approved})
+            </button>
+            <button 
+              onClick={() => setFilter('completed')} 
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                filter === 'completed' ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-green-50 border border-green-200'
+              }`}
+            >
+              Collected ({stats.collected})
+            </button>
+            <button 
+              onClick={() => setFilter('rejected')} 
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                filter === 'rejected' ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-green-50 border border-green-200'
+              }`}
+            >
+              Rejected ({stats.rejected})
             </button>
           </div>
 
           {/* Reservations List */}
-          <div className="space-y-4">
-            {filteredReservations.map((res) => (
-              <div key={res.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start flex-wrap gap-2">
-                      <h3 className="font-semibold text-gray-800 text-lg">{res.food}</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(res.status)}`}>
-                        {res.status === 'confirmed' && <FaCheckCircle className="text-xs" />}
-                        {res.status === 'pending' && <FaClock className="text-xs" />}
-                        {getStatusText(res.status)}
-                      </span>
-                    </div>
-                    <p className="text-gray-500 text-sm mt-1 flex items-center gap-1">
-                      <FaStore className="text-xs" /> {res.donor}
-                    </p>
-                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-400">
-                      <span className="flex items-center gap-1"><FaCalendar className="text-xs" /> {res.date}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1"><FaClock className="text-xs" /> {res.time}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1"><FaMapMarkerAlt className="text-xs" /> {res.pickupLocation}</span>
-                      <span>•</span>
-                      <span>Code: {res.code}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-4 pt-3 border-t border-gray-100">
-                  {res.status === 'pending' && (
-                    <>
-                      <button className="flex-1 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors">
-                        Confirm
-                      </button>
-                      <button className="flex-1 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-400 transition-colors">
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                  {res.status === 'confirmed' && (
-                    <button className="flex-1 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors">
-                      Get Directions
-                    </button>
-                  )}
-                  {res.status === 'completed' && (
-                    <button className="flex-1 py-2 bg-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-300 transition-colors">
-                      Leave a Review
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {filteredReservations.length === 0 && (
+          {filteredRequests.length === 0 ? (
             <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
-              <FaCalendar className="text-6xl text-gray-300 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-gray-800">No reservations found</h3>
-              <p className="text-gray-400 text-sm mt-1 mb-4">
-                You don't have any {filter !== 'all' ? filter : ''} reservations
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaCalendarAlt className="text-3xl text-green-400" />
+              </div>
+              <p className="text-gray-500 text-lg">No reservations found</p>
+              <p className="text-gray-400 text-sm mt-1 mb-5">
+                {requests.length === 0 
+                  ? "You haven't made any reservations yet" 
+                  : `No ${filter} reservations at the moment`}
               </p>
               <button 
                 onClick={() => navigate('/beneficiary/surplus')} 
-                className="px-6 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors"
+                className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 Browse Food Surplus
               </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredRequests.map((req) => (
+                <div 
+                  key={req.id} 
+                  className="bg-white rounded-xl p-5 shadow-sm border border-green-100 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => navigate(`/beneficiary/reservations/${req.id}`)}
+                >
+                  <div className="flex flex-wrap justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h3 className="font-semibold text-gray-800 text-lg">
+                          {req.donation?.foodType || 'Food Item'}
+                        </h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadgeClass(req.status)}`}>
+                          {getStatusText(req.status)}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mt-3">
+                        <p className="text-gray-600 flex items-center gap-2">
+                          <FaStore className="text-green-500 text-xs" />
+                          Donor: {req.donation?.donor?.user?.name || 'Unknown'}
+                        </p>
+                        <p className="text-gray-600 flex items-center gap-2">
+                          <FaBox className="text-green-500 text-xs" />
+                          Quantity: {req.requestedQuantity} {req.donation?.unit || 'kg'}
+                        </p>
+                        <p className="text-gray-600 flex items-center gap-2">
+                          <FaMapMarkerAlt className="text-green-500 text-xs" />
+                          Pickup: {req.donation?.pickupAddress || 'Address not specified'}
+                        </p>
+                        <p className="text-gray-600 flex items-center gap-2">
+                          <FaCalendarAlt className="text-green-500 text-xs" />
+                          Requested: {new Date(req.requestDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                      
+                      {req.notes && (
+                        <p className="text-gray-500 text-sm mt-3 italic">📝 {req.notes}</p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button 
+                        className="px-4 py-2 bg-green-50 text-green-600 rounded-lg text-sm hover:bg-green-100 transition-colors flex items-center gap-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/beneficiary/reservations/${req.id}`);
+                        }}
+                      >
+                        <FaEye size={12} /> Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

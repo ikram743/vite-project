@@ -18,6 +18,15 @@ const AuthPage: React.FC = () => {
   const [showAccountSelection, setShowAccountSelection] = useState(true);
   const [loading, setLoading] = useState(false);
 
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+
+  // Terms modal states
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
   // Sign In fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -96,33 +105,175 @@ const AuthPage: React.FC = () => {
     navigate("/auth?mode=signup", { replace: true });
   };
 
+  const detectWilayaFromCoordinates = async (
+    lat: number,
+    lng: number,
+  ): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+      );
+      const data = await response.json();
+
+      let wilayaName = "";
+      if (data.address?.state) {
+        wilayaName = data.address.state;
+      } else if (data.address?.region) {
+        wilayaName = data.address.region;
+      } else if (data.address?.county) {
+        wilayaName = data.address.county;
+      }
+
+      const wilayaCode = getWilayaCodeFromName(wilayaName);
+      return wilayaCode;
+    } catch (error) {
+      console.error("Erreur détection wilaya:", error);
+      return "";
+    }
+  };
+
+  const getWilayaCodeFromName = (wilayaName: string): string => {
+    const wilayaMapping: { [key: string]: string } = {
+      Adrar: "01",
+      Chlef: "02",
+      Laghouat: "03",
+      "Oum El Bouaghi": "04",
+      Batna: "05",
+      Béjaïa: "06",
+      Biskra: "07",
+      Béchar: "08",
+      Blida: "09",
+      Bouira: "10",
+      Tamanrasset: "11",
+      Tébessa: "12",
+      Tlemcen: "13",
+      Tiaret: "14",
+      "Tizi Ouzou": "15",
+      Alger: "16",
+      Djelfa: "17",
+      Jijel: "18",
+      Sétif: "19",
+      Saïda: "20",
+      Skikda: "21",
+      "Sidi Bel Abbès": "22",
+      Annaba: "23",
+      Guelma: "24",
+      Constantine: "25",
+      Médéa: "26",
+      Mostaganem: "27",
+      "M'Sila": "28",
+      Mascara: "29",
+      Ouargla: "30",
+      Oran: "31",
+      "El Bayadh": "32",
+      Illizi: "33",
+      "Bordj Bou Arréridj": "34",
+      Boumerdès: "35",
+      "El Tarf": "36",
+      Tindouf: "37",
+      Tissemsilt: "38",
+      "El Oued": "39",
+      Khenchela: "40",
+      "Souk Ahras": "41",
+      Tipaza: "42",
+      Mila: "43",
+      "Aïn Defla": "44",
+      Naâma: "45",
+      "Aïn Témouchent": "46",
+      Ghardaïa: "47",
+      Relizane: "48",
+      Timimoun: "49",
+      "Bordj Badji Mokhtar": "50",
+      "Ouled Djellal": "51",
+      "Béni Abbès": "52",
+      "In Salah": "53",
+      "In Guezzam": "54",
+      Touggourt: "55",
+      Djanet: "56",
+      "El Meghaier": "57",
+      "El Menia": "58",
+    };
+    for (const [name, code] of Object.entries(wilayaMapping)) {
+      if (
+        wilayaName.toLowerCase().includes(name.toLowerCase()) ||
+        name.toLowerCase().includes(wilayaName.toLowerCase())
+      ) {
+        return code;
+      }
+    }
+    return "";
+  };
+
   const getCurrentLocation = () => {
     setLocationLoading(true);
     if (!navigator.geolocation) {
-      toast.error("Geolocation not supported");
+      toast.error("Géolocalisation non supportée par votre navigateur");
       setLocationLoading(false);
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude } = position.coords;
         setCoordinates({ lat: latitude, lng: longitude });
-        toast.success("Location detected");
-        fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.display_name) setAddress(data.display_name);
-            if (data.address?.city || data.address?.town)
-              setCity(data.address?.city || data.address?.town || "");
-          })
-          .catch((err) => console.error(err));
+        toast.success("Position détectée");
+
+        try {
+          const geoResponse = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+          );
+          const geoData = await geoResponse.json();
+
+          if (geoData.display_name) {
+            setAddress(geoData.display_name);
+          }
+
+          const cityName =
+            geoData.address?.city ||
+            geoData.address?.town ||
+            geoData.address?.village ||
+            "";
+          if (cityName) {
+            setCity(cityName);
+          }
+
+          const detectedWilaya = await detectWilayaFromCoordinates(
+            latitude,
+            longitude,
+          );
+          if (detectedWilaya) {
+            setWilaya(detectedWilaya);
+            toast.success(`Wilaya détectée: ${detectedWilaya}`);
+          }
+        } catch (error) {
+          console.error("Reverse geocoding error:", error);
+        }
         setLocationLoading(false);
       },
       (error) => {
-        toast.error("Could not get location");
+        console.error(error);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error(
+              "Accès à la position refusé. Veuillez remplir l'adresse manuellement.",
+            );
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error(
+              "Position non disponible. Veuillez remplir l'adresse manuellement.",
+            );
+            break;
+          case error.TIMEOUT:
+            toast.error("Délai dépassé. Veuillez réessayer.");
+            break;
+          default:
+            toast.error("Erreur de géolocalisation");
+        }
         setLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       },
     );
   };
@@ -147,7 +298,7 @@ const AuthPage: React.FC = () => {
       return;
     }
     if (!agreeTerms) {
-      toast.error("Please accept the terms");
+      toast.error("Please accept the Terms of Service and Privacy Policy");
       return;
     }
     setLoading(true);
@@ -248,8 +399,135 @@ const AuthPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      {/* Terms Modal */}
+      {showTermsModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowTermsModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-800">
+                Terms of Service
+              </h3>
+              <button
+                onClick={() => setShowTermsModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh] text-gray-600 text-sm space-y-4">
+              <h4 className="font-bold">1. Acceptance of Terms</h4>
+              <p>
+                By creating an account on FoodShare, you agree to comply with
+                these Terms of Service...
+              </p>
+              <h4 className="font-bold">2. User Responsibilities</h4>
+              <p>
+                You are responsible for the accuracy of the information you
+                provide...
+              </p>
+              <h4 className="font-bold">3. Food Donations</h4>
+              <p>
+                Businesses (Donors) must ensure that all food offered for
+                donation is safe for consumption...
+              </p>
+              <h4 className="font-bold">4. Food Collection</h4>
+              <p>
+                Associations (Beneficiaries) must collect donations within the
+                agreed timeframe...
+              </p>
+              <h4 className="font-bold">5. Liability</h4>
+              <p>
+                FoodShare acts as an intermediary platform and is not
+                responsible for the quality of donated food...
+              </p>
+            </div>
+            <div className="p-5 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowTermsModal(false)}
+                className="px-5 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Modal */}
+      {showPrivacyModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowPrivacyModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-800">
+                Privacy Policy
+              </h3>
+              <button
+                onClick={() => setShowPrivacyModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh] text-gray-600 text-sm space-y-4">
+              <h4 className="font-bold">1. Information We Collect</h4>
+              <p>
+                We collect personal information including name, email, phone
+                number, and address...
+              </p>
+              <h4 className="font-bold">2. How We Use Your Information</h4>
+              <p>
+                Your information is used to facilitate food donations and
+                distributions...
+              </p>
+              <h4 className="font-bold">3. Data Protection</h4>
+              <p>
+                We implement security measures to protect your personal
+                information...
+              </p>
+              <h4 className="font-bold">4. Data Sharing</h4>
+              <p>
+                We do not sell your personal information to third parties...
+              </p>
+              <h4 className="font-bold">5. Your Rights</h4>
+              <p>
+                You have the right to access, modify, or delete your personal
+                information...
+              </p>
+            </div>
+            <div className="p-5 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowPrivacyModal(false)}
+                className="px-5 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row max-w-4xl w-full bg-white rounded-2xl overflow-hidden shadow-xl">
-        {/* LEFT PANEL - Compact */}
+        <button
+          onClick={() => navigate("/")}
+          className="fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-xl shadow-md hover:bg-white transition-all"
+        >
+          <i className="fas fa-arrow-left"></i>
+          <span>Home</span>
+        </button>
+
+        {/* LEFT PANEL */}
         <div className="flex-1 bg-gradient-to-br from-emerald-700 to-teal-800 text-white p-6 md:p-8 flex flex-col justify-center">
           <div className="max-w-sm mx-auto">
             <div className="flex items-center gap-2 mb-5">
@@ -347,14 +625,25 @@ const AuthPage: React.FC = () => {
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Password
                   </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type={showSignInPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500 pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignInPassword(!showSignInPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <i
+                        className={`fas ${showSignInPassword ? "fa-eye-slash" : "fa-eye"}`}
+                      ></i>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center">
@@ -370,7 +659,7 @@ const AuthPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => navigate("/forgot-password")}
-                    className="text-emerald-600 text-xs"
+                    className="text-emerald-600 text-sm hover:text-emerald-700 transition-colors font-medium"
                   >
                     Forgot password?
                   </button>
@@ -659,27 +948,51 @@ const AuthPage: React.FC = () => {
                         <label className="block text-xs font-medium text-gray-700 mb-0.5">
                           Password *
                         </label>
-                        <input
-                          type="password"
-                          value={signupPassword}
-                          onChange={(e) => setSignupPassword(e.target.value)}
-                          placeholder="Create a strong password"
-                          className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm"
-                          required
-                        />
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={signupPassword}
+                            onChange={(e) => setSignupPassword(e.target.value)}
+                            placeholder="Create a strong password"
+                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm pr-10"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            <i
+                              className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}
+                            ></i>
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-0.5">
                           Confirm password *
                         </label>
-                        <input
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="Confirm your password"
-                          className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm"
-                          required
-                        />
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Confirm your password"
+                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm pr-10"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowConfirmPassword(!showConfirmPassword)
+                            }
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            <i
+                              className={`fas ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"}`}
+                            ></i>
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-1.5">
@@ -692,13 +1005,21 @@ const AuthPage: React.FC = () => {
                         />
                         <span className="text-xs text-gray-600">
                           I agree to the{" "}
-                          <a href="/terms" className="text-emerald-600">
-                            Terms
-                          </a>{" "}
+                          <button
+                            type="button"
+                            onClick={() => setShowTermsModal(true)}
+                            className="text-emerald-600 hover:underline"
+                          >
+                            Terms of Service
+                          </button>{" "}
                           and{" "}
-                          <a href="/privacy" className="text-emerald-600">
-                            Privacy
-                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setShowPrivacyModal(true)}
+                            className="text-emerald-600 hover:underline"
+                          >
+                            Privacy Policy
+                          </button>
                         </span>
                       </div>
 

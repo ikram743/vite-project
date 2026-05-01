@@ -5,6 +5,7 @@ import "./App.css";
 // Public Pages
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
+import FoodWasteImpact from "./pages/FoodWasteImpact";
 
 // Admin Pages
 import AdminLayout from "./components/admin/AdminLayout";
@@ -27,13 +28,20 @@ import DonorAddSurplus from "./pages/donor/DonorAddSurplus";
 import DonorReservations from "./pages/donor/DonorReservations";
 import DonorHistory from "./pages/donor/DonorHistory";
 import DonorProfile from "./pages/donor/DonorProfile";
-
+import DonorNotifications from "./pages/donor/DonorNotifications";
+import DonorSettings from "./pages/donor/DonorSettings";
+import DonorStatistics from "./pages/donor/DonorStatistics";
 // Beneficiary Pages
 import BenDashboard from "./pages/beneficiary/BenDashboard";
 import BenSurplus from "./pages/beneficiary/BenSurplus";
 import BenReservations from "./pages/beneficiary/BenReservations";
 import BeneficiaryHistory from "./pages/beneficiary/BenHistory";
 import BeneficiaryProfile from "./pages/beneficiary/BenProfile";
+import BeneficiaryNotifications from "./pages/beneficiary/BenNotifications";
+import BeneficiarySettings from "./pages/beneficiary/BenSettings";
+
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 // Composant de route protégée
 const ProtectedRoute = ({
@@ -67,6 +75,7 @@ function App() {
     <Routes>
       {/* Routes publiques */}
       <Route path="/" element={<Home />} />
+      <Route path="/food-waste-impact" element={<FoodWasteImpact />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route
         path="/login"
@@ -77,6 +86,8 @@ function App() {
         element={<Navigate to="/auth?mode=signup" replace />}
       />
 
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       {/* ============================================
           ROUTES ADMIN AVEC LAYOUT
       ============================================ */}
@@ -105,7 +116,6 @@ function App() {
         <Route path="settings" element={<Settings />} />
         <Route path="profile" element={<Profile />} />
       </Route>
-
       {/* ============================================
           ROUTES DONOR AVEC LAYOUT
       ============================================ */}
@@ -124,8 +134,10 @@ function App() {
         <Route path="reservations" element={<DonorReservations />} />
         <Route path="history" element={<DonorHistory />} />
         <Route path="profile" element={<DonorProfile />} />
+        <Route path="notifications" element={<DonorNotifications />} />
+        <Route path="settings" element={<DonorSettings />} />
+        <Route path="statistics" element={<DonorStatistics />} />
       </Route>
-
       {/* ============================================
           ROUTES BENEFICIARY AVEC LAYOUT
       ============================================ */}
@@ -143,8 +155,9 @@ function App() {
         <Route path="claims" element={<BenReservations />} />
         <Route path="history" element={<BeneficiaryHistory />} />
         <Route path="profile" element={<BeneficiaryProfile />} />
+        <Route path="notifications" element={<BeneficiaryNotifications />} />
+        <Route path="settings" element={<BeneficiarySettings />} />
       </Route>
-
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

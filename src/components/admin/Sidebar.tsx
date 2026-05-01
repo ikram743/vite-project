@@ -1,6 +1,6 @@
 // components/admin/AdminSidebar.tsx
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   FiHome,
@@ -14,6 +14,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
+import { FaHome } from "react-icons/fa";
 
 interface AdminSidebarProps {
   collapsed: boolean;
@@ -25,6 +26,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   setCollapsed,
 }) => {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const navItems = [
     { path: "/admin", icon: FiHome, label: "Dashboard" },
@@ -122,8 +124,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         className={`absolute bottom-0 left-0 right-0 p-4 border-t border-primary-700 ${collapsed ? "text-center" : ""}`}
       >
         <div className="flex items-center gap-2 text-primary-300 text-xs">
-          <div className="w-2 h-2 bg-primary-400 rounded-full animate-pulse"></div>
-          {!collapsed && <span>v2.0.0 | Système opérationnel</span>}
+          <button
+            onClick={() => navigate("/")}
+            className={`flex items-center gap-3 text-primary-200 hover:text-white transition-colors w-full p-4 ${collapsed ? "justify-center" : ""}`}
+          >
+            <FaHome size={16} />
+            {!collapsed && <span className="text-sm">Back to home</span>}
+          </button>
         </div>
       </div>
     </aside>

@@ -97,10 +97,41 @@ export const changePassword = async (
   return handleResponse(response);
 };
 
+// src/lib/API.ts (ajouter à la fin)
+
+// ============================================
+// FORGOT PASSWORD
+// ============================================
+
+export const forgotPassword = async (email: string) => {
+  const response = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse(response);
+};
+
+export const resetPassword = async (token: string, newPassword: string) => {
+  const response = await fetch(`${API_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  return handleResponse(response);
+};
+
 // ============================================
 // DONS (DONATIONS)
 // ============================================
 
+export const getDonorStats = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/donors/stats`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handleResponse(response);
+};
 export const getDonations = async (page = 1, limit = 10) => {
   const token = localStorage.getItem("token");
 
@@ -613,6 +644,19 @@ export const cancelDistribution = async (id: string, reason?: string) => {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ reason }),
+  });
+  return handleResponse(response);
+};
+
+// ============================================
+// DELETE NOTIFICATION
+// ============================================
+
+export const deleteNotification = async (id: string) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/notifications/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
   });
   return handleResponse(response);
 };

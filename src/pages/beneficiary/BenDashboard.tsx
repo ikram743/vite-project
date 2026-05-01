@@ -1,386 +1,443 @@
+// src/pages/beneficiary/BenDashboard.tsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import BenSidebar from '../../components/beneficiary/BenSidebar';
-
-// Import professional icons
+import { getMyRequests, getNotifications, getDashboardStats, getDonations } from '../../lib/API';
 import { 
   FaChartLine, FaBox, FaCalendarCheck, FaCheckCircle, 
-  FaLeaf, FaStore, FaMapMarkerAlt, FaClock, FaStar,
-  FaArrowRight, FaBell, FaUserCircle, FaUtensils,
-  FaBreadSlice, FaAppleAlt, FaCarrot, FaTachometerAlt,
-  FaTimesCircle, FaCheck, FaExclamationTriangle
+  FaLeaf, FaStore, FaUtensils, FaBreadSlice, FaCarrot, 
+  FaArrowRight, FaBell, FaUserCircle, FaHistory, FaSpinner
 } from 'react-icons/fa';
-import { 
-  HiOutlineTrendingUp, HiOutlineLocationMarker, 
-  HiOutlineCalendar, HiOutlineClock 
-} from 'react-icons/hi';
-import { MdRestaurant, MdLocalCafe, MdEmojiFoodBeverage } from 'react-icons/md';
+import { HiOutlineTrendingUp, HiOutlineLocationMarker, HiOutlineCalendar, HiOutlineClock } from 'react-icons/hi';
+import toast from 'react-hot-toast';
 
-// تعريف أنواع البيانات
-interface Reservation {
-  id: number;
-  food: string;
-  donor: string;
-  time: string;
-  location: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
-}
-
-interface RecentItem {
-  id: number;
+interface Donation {
+  id: string;
   name: string;
   donor: string;
   quantity: string;
   expiry: string;
   location: string;
   icon: JSX.Element;
+  foodType?: string;
+  donorName?: string;
+  totalQuantity?: number;
+  unit?: string;
+  expirationDate?: string;
+  pickupAddress?: string;
+}
+
+interface Request {
+  id: string;
+  status: string;
+  donation?: {
+    foodType: string;
+    donor?: { user?: { name: string } };
+    unit?: string;
+  };
+  requestedQuantity?: number;
 }
 
 const BenDashboard = () => {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [greeting, setGreeting] = useState('');
-  const [userName] = useState('Ahmed');
-
-  const [stats] = useState({
-    available: 12,
-    reservations: 3,
-    completed: 8,
-    mealsSaved: 125
+  const [userName, setUserName] = useState('Beneficiary');
+  const [loading, setLoading] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Stats from API
+  const [stats, setStats] = useState({
+    available: 0,
+    reservations: 0,
+    completed: 0,
+    mealsSaved: 0
   });
 
-  const [recentItems] = useState<RecentItem[]>([
-    { id: 1, name: 'Ready Meals', donor: 'Al Salam Restaurant', quantity: '50 meals', expiry: '2024-12-31', location: 'Algiers', icon: <MdEmojiFoodBeverage className="text-3xl text-primary-600" /> },
-    { id: 2, name: 'Fresh Bread', donor: 'Al Noor Bakery', quantity: '100 pieces', expiry: '2024-12-30', location: 'Oran', icon: <FaBreadSlice className="text-3xl text-secondary-500" /> },
-    { id: 3, name: 'Vegetables', donor: 'Al Fallah Market', quantity: '30 kg', expiry: '2024-12-29', location: 'Constantine', icon: <FaCarrot className="text-3xl text-green-600" /> },
-  ]);
+  // Recent donations from API
+  const [recentDonations, setRecentDonations] = useState<Donation[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingDonations, setLoadingDonations] = useState(false);
 
-  const [upcomingReservations, setUpcomingReservations] = useState<Reservation[]>([
-    { id: 1, food: 'Ready Meals', donor: 'Al Salam Restaurant', time: 'Today, 2:00 PM', location: 'Tunis', status: 'pending' },
-    { id: 2, food: 'Fresh Bread', donor: 'Al Noor Bakery', time: 'Tomorrow, 10:00 AM', location: 'Ariana', status: 'confirmed' },
-  ]);
+  // Helper function to get icon based on food type
+  const getIconForFood = (foodType: string) => {
+    const type = foodType?.toLowerCase() || '';
+    if (type.includes('bread') || type.includes('bakery') || type.includes('pain')) {
+      return <FaBreadSlice className="text-3xl text-secondary-500" />;
+    }
+    if (type.includes('vegetable') || type.includes('legume')) {
+      return <FaCarrot className="text-3xl text-green-600" />;
+    }
+    if (type.includes('fruit')) {
+      return <FaBreadSlice className="text-3xl text-red-500" />;
+    }
+    return <FaUtensils className="text-3xl text-primary-600" />;
+  };
 
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
+  // Format date to readable string
+  const formatDate = (date: Date | string) => {
+    const d = new Date(date);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good morning');
     else if (hour < 18) setGreeting('Good afternoon');
     else setGreeting('Good evening');
+
+    // Get user from localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserName(user.name || user.user?.name || 'Beneficiary');
+      } catch(e) {
+        console.error('Error parsing user:', e);
+      }
+    }
+
+    loadDashboardData();
+    loadRecentDonations();
   }, []);
 
-  // دالة تأكيد الحجز
-  const handleConfirmReservation = (reservation: Reservation) => {
-    setSelectedReservation(reservation);
-    setShowConfirmModal(true);
-  };
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Get dashboard stats
+      try {
+        const statsResponse = await getDashboardStats();
+        console.log('Dashboard stats:', statsResponse);
+        if (statsResponse) {
+          setStats({
+            available: statsResponse.activeDonations || statsResponse.totalDonations || 0,
+            reservations: statsResponse.pendingRequests || statsResponse.activeReservations || 0,
+            completed: statsResponse.completedDonations || statsResponse.completedOrders || 0,
+            mealsSaved: statsResponse.mealsServed || statsResponse.totalMeals || 0
+          });
+        }
+      } catch (statsError) {
+        console.error('Error loading stats:', statsError);
+      }
 
-  const confirmReservation = () => {
-    if (selectedReservation) {
-      setUpcomingReservations(prev =>
-        prev.map(item =>
-          item.id === selectedReservation.id
-            ? { ...item, status: 'confirmed' }
-            : item
-        )
-      );
+      // Get my requests for stats
+      try {
+        const requestsResponse = await getMyRequests();
+        console.log('My requests:', requestsResponse);
+        
+        let requests: Request[] = [];
+        if (requestsResponse?.requests) {
+          requests = requestsResponse.requests;
+        } else if (Array.isArray(requestsResponse)) {
+          requests = requestsResponse;
+        }
+        
+        // Calculate real stats from requests
+        const pendingRequests = requests.filter((r: Request) => 
+          r.status === 'PENDING' || r.status === 'pending'
+        ).length;
+        
+        const completedRequests = requests.filter((r: Request) => 
+          r.status === 'COMPLETED' || r.status === 'COLLECTED' || r.status === 'completed'
+        ).length;
+        
+        setStats(prev => ({
+          ...prev,
+          reservations: pendingRequests,
+          completed: completedRequests
+        }));
+      } catch (requestsError) {
+        console.error('Error loading requests:', requestsError);
+      }
+
+      // Get notifications
+      try {
+        const notifResponse = await getNotifications();
+        console.log('Notifications:', notifResponse);
+        
+        let notifs = [];
+        if (notifResponse?.notifications) {
+          notifs = notifResponse.notifications;
+        } else if (Array.isArray(notifResponse)) {
+          notifs = notifResponse;
+        }
+        
+        setNotifications(notifs);
+        const unread = notifs.filter((n: any) => !n.isRead && !n.read).length;
+        setUnreadCount(unread);
+      } catch (notifError) {
+        console.error('Error loading notifications:', notifError);
+      }
+      
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
     }
-    setShowConfirmModal(false);
-    setSelectedReservation(null);
   };
 
-  // دالة إلغاء الحجز
-  const handleCancelReservation = (reservation: Reservation) => {
-    setSelectedReservation(reservation);
-    setShowCancelModal(true);
-  };
-
-  const cancelReservation = () => {
-    if (selectedReservation) {
-      setUpcomingReservations(prev =>
-        prev.map(item =>
-          item.id === selectedReservation.id
-            ? { ...item, status: 'cancelled' }
-            : item
-        )
-      );
+  const loadRecentDonations = async () => {
+    try {
+      setLoadingDonations(true);
+      const response = await getDonations(1, 3);
+      console.log('Recent donations:', response);
+      
+      let donations = [];
+      if (response?.data?.donations) {
+        donations = response.data.donations;
+      } else if (response?.donations) {
+        donations = response.donations;
+      } else if (Array.isArray(response)) {
+        donations = response;
+      }
+      
+      const formattedDonations: Donation[] = donations.map((donation: any) => ({
+        id: donation.id,
+        name: donation.foodType || donation.name || 'Food Item',
+        donor: donation.donor?.user?.name || donation.donorName || 'Donor',
+        quantity: `${donation.totalQuantity || donation.quantity || 0} ${donation.unit || 'kg'}`,
+        expiry: formatDate(donation.expirationDate || donation.expiryDate || new Date()),
+        location: donation.pickupAddress?.split(',')[0] || donation.location || 'Algiers',
+        icon: getIconForFood(donation.foodType),
+        foodType: donation.foodType,
+        donorName: donation.donor?.user?.name,
+        totalQuantity: donation.totalQuantity,
+        unit: donation.unit,
+        expirationDate: donation.expirationDate,
+        pickupAddress: donation.pickupAddress
+      }));
+      
+      setRecentDonations(formattedDonations);
+    } catch (error) {
+      console.error('Error loading recent donations:', error);
+    } finally {
+      setLoadingDonations(false);
     }
-    setShowCancelModal(false);
-    setSelectedReservation(null);
-    setCancelReason('');
   };
 
-  const getStatusBadge = (status: 'pending' | 'confirmed' | 'cancelled') => {
-    switch(status) {
-      case 'confirmed':
-        return <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1"><FaCheck className="text-xs" /> Confirmed</span>;
-      case 'cancelled':
-        return <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full flex items-center gap-1"><FaTimesCircle className="text-xs" /> Cancelled</span>;
-      default:
-        return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full flex items-center gap-1"><FaClock className="text-xs" /> Pending</span>;
+  const handleReserve = (donationId: string) => {
+    navigate(`/beneficiary/surplus?donation=${donationId}`);
+  };
+
+  const handleViewAllNotifications = () => {
+    setShowNotifications(false);
+    navigate('/beneficiary/notifications');
+  };
+
+  const getNotificationIconBg = (type: string) => {
+    switch(type) {
+      case 'reservation': return 'bg-green-100';
+      case 'surplus': return 'bg-blue-100';
+      case 'system': return 'bg-purple-100';
+      default: return 'bg-gray-100';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <BenSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <FaSpinner className="animate-spin text-4xl text-primary-600 mx-auto mb-4" />
+            <p className="text-gray-500">Loading dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <BenSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       
-      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
-        <div className="p-8">
-          {/* ========== HEADER ========== */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 text-primary-600 mb-2">
-              <FaChartLine className="text-sm" />
-              <span className="text-xs font-medium uppercase tracking-wide">Dashboard</span>
-            </div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              {greeting}, {userName} 👋
-            </h1>
-            <p className="text-gray-500 mt-1">Here's what's happening with your food surplus today</p>
-          </div>
-
-          {/* ========== STATS CARDS ========== */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            {/* Card 1 - Available Surplus */}
-            <div className="group bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center group-hover:bg-primary-100 transition-colors">
-                  <FaBox className="text-primary-600 text-xl" />
-                </div>
-                <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
-                  <HiOutlineTrendingUp className="text-xs" /> +2
-                </span>
+      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'} bg-gray-50 min-h-screen`}>
+        <div className="p-6 max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex justify-between items-start flex-wrap gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-primary-600 mb-1">
+                <FaChartLine className="text-sm" />
+                <span className="text-xs font-medium uppercase tracking-wide">Dashboard</span>
               </div>
-              <div className="text-2xl font-semibold text-gray-900">{stats.available}</div>
-              <div className="text-sm text-gray-500 mt-1">Available surplus</div>
+              <h1 className="text-2xl font-bold text-gray-800">
+                {greeting}, {userName} 👋
+              </h1>
+              <p className="text-gray-500 text-sm mt-1">Welcome to FoodShare Beneficiary Portal</p>
             </div>
-
-            {/* Card 2 - Active Reservations */}
-            <div className="group bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center group-hover:bg-orange-100 transition-colors">
-                  <FaCalendarCheck className="text-orange-600 text-xl" />
-                </div>
-                <span className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full flex items-center gap-1">
-                  <HiOutlineTrendingUp className="text-xs" /> +1
-                </span>
-              </div>
-              <div className="text-2xl font-semibold text-gray-900">{stats.reservations}</div>
-              <div className="text-sm text-gray-500 mt-1">Active reservations</div>
-            </div>
-
-            {/* Card 3 - Completed Orders */}
-            <div className="group bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                  <FaCheckCircle className="text-green-600 text-xl" />
-                </div>
-                <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
-                  <HiOutlineTrendingUp className="text-xs" /> +15%
-                </span>
-              </div>
-              <div className="text-2xl font-semibold text-gray-900">{stats.completed}</div>
-              <div className="text-sm text-gray-500 mt-1">Completed orders</div>
-            </div>
-
-            {/* Card 4 - Meals Saved */}
-            <div className="group bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                  <FaLeaf className="text-emerald-600 text-xl" />
-                </div>
-              </div>
-              <div className="text-2xl font-semibold text-gray-900">{stats.mealsSaved}</div>
-              <div className="text-sm text-gray-500 mt-1">Meals saved</div>
-              <div className="mt-2">
-                <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[62%] bg-emerald-500 rounded-full"></div>
-                </div>
-                <p className="text-xs text-gray-400 mt-1">62% of monthly goal</p>
-              </div>
-            </div>
-          </div>
-
-          {/* ========== TWO COLUMN LAYOUT ========== */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* LEFT COLUMN - Recent Surplus */}
-            <div className="lg:col-span-2">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <FaUtensils className="text-gray-400" />
-                  <h2 className="text-lg font-semibold text-gray-900">Recent surplus</h2>
-                </div>
+            
+            <div className="flex items-center gap-3">
+              {/* Notifications Dropdown */}
+              <div className="relative">
                 <button 
-                  onClick={() => navigate('/beneficiary/surplus')}
-                  className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  title="Notifications"
                 >
-                  View all <FaArrowRight className="text-xs" />
+                  <FaBell className="text-gray-600 text-xl" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
                 </button>
-              </div>
 
-              <div className="space-y-3">
-                {recentItems.map((item) => (
-                  <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
-                        {item.icon}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{item.name}</h3>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                          <span className="flex items-center gap-1"><FaStore className="text-xs" /> {item.donor}</span>
-                          <span className="flex items-center gap-1"><HiOutlineCalendar className="text-xs" /> {item.expiry}</span>
-                          <span className="flex items-center gap-1"><HiOutlineLocationMarker className="text-xs" /> {item.location}</span>
+                {showNotifications && (
+                  <div className="absolute right-0 top-12 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50">
+                    <div className="p-4 border-b border-gray-100">
+                      <h3 className="font-semibold text-gray-900">Notifications</h3>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">
+                          <FaBell className="text-3xl mx-auto mb-2 text-gray-300" />
+                          <p className="text-sm">No notifications yet</p>
                         </div>
-                      </div>
-                      <button className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors">
-                        Reserve
+                      ) : (
+                        notifications.slice(0, 5).map((notif: any) => (
+                          <div key={notif.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer">
+                            <div className="flex gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getNotificationIconBg(notif.type)}`}>
+                                <span className="text-sm">{notif.icon || '🔔'}</span>
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">{notif.title}</p>
+                                <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
+                                <p className="text-xs text-gray-400 mt-1">{notif.time || 'Just now'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <div className="p-3 text-center border-t border-gray-100">
+                      <button 
+                        onClick={handleViewAllNotifications}
+                        className="text-sm text-primary-600 hover:text-primary-700"
+                      >
+                        View all notifications →
                       </button>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
+
+              <Link 
+                to="/beneficiary/history"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors block"
+                title="Order History"
+              >
+                <FaHistory className="text-gray-600 text-xl" />
+              </Link>
+
+              <Link 
+                to="/beneficiary/profile"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors block"
+                title="My Profile"
+              >
+                <FaUserCircle className="text-gray-600 text-xl" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center mb-3">
+                <FaBox className="text-primary-600 text-xl" />
+              </div>
+              <div className="text-2xl font-bold text-gray-900">{stats.available}</div>
+              <div className="text-sm text-gray-500 mt-1">Available surplus</div>
             </div>
 
-            {/* RIGHT COLUMN - Upcoming Reservations */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <HiOutlineClock className="text-gray-400" />
-                <h2 className="text-lg font-semibold text-gray-900">Upcoming pickups</h2>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center mb-3">
+                <FaCalendarCheck className="text-orange-600 text-xl" />
               </div>
+              <div className="text-2xl font-bold text-gray-900">{stats.reservations}</div>
+              <div className="text-sm text-gray-500 mt-1">Active reservations</div>
+            </div>
 
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center mb-3">
+                <FaCheckCircle className="text-green-600 text-xl" />
+              </div>
+              <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
+              <div className="text-sm text-gray-500 mt-1">Completed orders</div>
+            </div>
+
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center mb-3">
+                <FaLeaf className="text-emerald-600 text-xl" />
+              </div>
+              <div className="text-2xl font-bold text-gray-900">{stats.mealsSaved}</div>
+              <div className="text-sm text-gray-500 mt-1">Meals saved</div>
+              <div className="mt-2">
+                <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min((stats.mealsSaved / 100) * 100, 100)}%` }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Surplus */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FaUtensils className="text-gray-400" />
+                <h2 className="text-lg font-semibold text-gray-900">Recent surplus</h2>
+              </div>
+              <Link 
+                to="/beneficiary/surplus"
+                className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1 transition-colors"
+              >
+                View all <FaArrowRight className="text-xs" />
+              </Link>
+            </div>
+
+            {loadingDonations ? (
+              <div className="flex justify-center py-8">
+                <FaSpinner className="animate-spin text-2xl text-primary-600" />
+              </div>
+            ) : recentDonations.length > 0 ? (
               <div className="space-y-3">
-                {upcomingReservations.map((res) => (
-                  <div key={res.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
-                        <MdRestaurant className="text-primary-600 text-lg" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-medium text-gray-900">{res.food}</h3>
-                          {getStatusBadge(res.status)}
-                        </div>
-                        <p className="text-sm text-gray-500">{res.donor}</p>
-                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                          <span className="flex items-center gap-1"><HiOutlineClock className="text-xs" /> {res.time}</span>
-                          <span className="flex items-center gap-1"><HiOutlineLocationMarker className="text-xs" /> {res.location}</span>
-                        </div>
+                {recentDonations.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 hover:shadow-md transition-all duration-200 border border-gray-200 cursor-pointer"
+                    onClick={() => handleReserve(item.id)}
+                  >
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100">
+                      {item.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{item.name}</h3>
+                      <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1"><FaStore className="text-xs" /> {item.donor}</span>
+                        <span className="flex items-center gap-1"><FaBox className="text-xs" /> {item.quantity}</span>
+                        <span className="flex items-center gap-1"><HiOutlineCalendar className="text-xs" /> Expires: {item.expiry}</span>
+                        <span className="flex items-center gap-1"><HiOutlineLocationMarker className="text-xs" /> {item.location}</span>
                       </div>
                     </div>
-                    <div className="flex gap-2 mt-3">
-                      {res.status === 'pending' && (
-                        <>
-                          <button 
-                            onClick={() => handleConfirmReservation(res)}
-                            className="flex-1 text-center text-sm bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors"
-                          >
-                            Confirm
-                          </button>
-                          <button 
-                            onClick={() => handleCancelReservation(res)}
-                            className="flex-1 text-center text-sm bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                      {res.status === 'confirmed' && (
-                        <button 
-                          className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
-                          onClick={() => navigate(`/beneficiary/reservations/${res.id}`)}
-                        >
-                          View details →
-                        </button>
-                      )}
-                      {res.status === 'cancelled' && (
-                        <div className="w-full text-center text-sm text-gray-400 font-medium">
-                          Cancelled
-                        </div>
-                      )}
-                    </div>
+                    <button className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors shadow-sm">
+                      Reserve
+                    </button>
                   </div>
                 ))}
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-8">
+                <FaUtensils className="text-4xl text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No surplus available at the moment</p>
+                <p className="text-xs text-gray-400 mt-1">Check back later for new donations</p>
+              </div>
+            )}
           </div>
         </div>
       </main>
-
-      {/* ========== MODAL CONFIRM RESERVATION ========== */}
-      {showConfirmModal && selectedReservation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <FaCheck className="text-green-600 text-xl" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">Confirm Reservation</h3>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to confirm the reservation for <strong>{selectedReservation.food}</strong>?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmReservation}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========== MODAL CANCEL RESERVATION ========== */}
-      {showCancelModal && selectedReservation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <FaExclamationTriangle className="text-red-600 text-xl" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">Cancel Reservation</h3>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Are you sure you want to cancel the reservation for <strong>{selectedReservation.food}</strong>?
-            </p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Reason (optional)</label>
-              <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                rows={2}
-                placeholder="Why are you cancelling?"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCancelModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Go back
-              </button>
-              <button
-                onClick={cancelReservation}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Yes, Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
