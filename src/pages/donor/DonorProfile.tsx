@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DonorSidebar from '../../components/donor/DonorSidebar';
-import { FaEdit, FaSave, FaTimes, FaBox, FaUsers, FaStar, FaCalendar, FaSpinner } from 'react-icons/fa';
+import { FaEdit, FaSave, FaTimes, FaBox, FaUsers, FaStar, FaCalendar, FaSpinner, FaSyncAlt } from 'react-icons/fa';
 import { getProfile, updateProfile, getMyDonations, getReceivedRequests } from '../../lib/API';
 import toast from 'react-hot-toast';
 
@@ -20,11 +20,23 @@ interface ProfileData {
   rating: number;
 }
 
+// Helper to safely extract array from API responses
+const normalizeArray = (response: any, key?: string): any[] => {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (key && response[key] && Array.isArray(response[key])) return response[key];
+  if (response.data && Array.isArray(response.data)) return response.data;
+  if (response.donations && Array.isArray(response.donations)) return response.donations;
+  if (response.requests && Array.isArray(response.requests)) return response.requests;
+  return [];
+};
+
 const DonorProfile = () => {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,93 +55,90 @@ const DonorProfile = () => {
     rating: 0
   });
 
-  // Fetch profile data from API
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setLoading(true);
-      setError(null);
+  const fetchProfile = async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      // Get user profile (includes donorProfile relation)
+      const profileResponse = await getProfile();
+      console.log('Profile response:', profileResponse);
+      
+      // Extract user and donorProfile
+      const userData = profileResponse?.user || profileResponse?.data?.user || profileResponse;
+      const donorProfile = userData?.donorProfile || {};
+      
+      // Calculate stats from donations
+      let donations: any[] = [];
+      let requests: any[] = [];
+      
       try {
-        // Get user profile
-        const profileResponse = await getProfile();
-        console.log('Profile response:', profileResponse);
-        
-        let userData = profileResponse?.data?.user || profileResponse?.user || profileResponse;
-        
-        // Calculate stats from donations
-        let donationsResponse = null;
-        let requestsResponse = null;
-        let donations = [];
-        let requests = [];
-        
-        try {
-          donationsResponse = await getMyDonations();
-          if (donationsResponse?.data?.donations) {
-            donations = donationsResponse.data.donations;
-          } else if (donationsResponse?.donations) {
-            donations = donationsResponse.donations;
-          } else if (Array.isArray(donationsResponse)) {
-            donations = donationsResponse;
-          }
-        } catch (err) {
-          console.error('Error fetching donations:', err);
-        }
-        
-        try {
-          requestsResponse = await getReceivedRequests();
-          if (requestsResponse?.data?.requests) {
-            requests = requestsResponse.data.requests;
-          } else if (requestsResponse?.requests) {
-            requests = requestsResponse.requests;
-          } else if (Array.isArray(requestsResponse)) {
-            requests = requestsResponse;
-          }
-        } catch (err) {
-          console.error('Error fetching requests:', err);
-        }
-        
-        // Calculate total completed donations
-        const completedDonations = donations.filter((d: any) => 
-          d.status === 'COMPLETED' || d.status === 'COLLECTED' || d.status === 'FINISHED'
-        ).length;
-        
-        // Calculate unique beneficiaries
-        const uniqueBeneficiaries = new Set(requests.map((r: any) => r.beneficiaryId || r.beneficiary?.id)).size;
-        
-        // Calculate average rating from requests with ratings
-        const ratedRequests = requests.filter((r: any) => r.rating && r.rating > 0);
-        const avgRating = ratedRequests.length > 0 
-          ? ratedRequests.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / ratedRequests.length
-          : 0;
-        
-        // Format joined date
-        const joinedDate = userData?.createdAt 
-          ? new Date(userData.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
-          : 'January 2025';
-        
-        setProfileData({
-          businessName: userData?.businessName || userData?.name || 'My Business',
-          businessType: userData?.businessType || userData?.category || 'Restaurant',
-          contactName: userData?.contactName || userData?.name || 'Donor',
-          email: userData?.email || '',
-          phone: userData?.phone || userData?.mobile || '',
-          address: userData?.address || userData?.location || '',
-          registrationNumber: userData?.registrationNumber || 'Not specified',
-          taxNumber: userData?.taxNumber || 'Not specified',
-          joinedDate: joinedDate,
-          totalDonations: completedDonations,
-          totalBeneficiaries: uniqueBeneficiaries,
-          rating: parseFloat(avgRating.toFixed(1))
-        });
-        
-      } catch (err: any) {
-        console.error('Error fetching profile:', err);
-        setError(err.message || 'Failed to load profile');
-        toast.error('Failed to load profile');
-      } finally {
-        setLoading(false);
+        const donationsResponse = await getMyDonations();
+        donations = normalizeArray(donationsResponse, 'donations');
+      } catch (err) {
+        console.error('Error fetching donations:', err);
       }
-    };
-    
+      
+      try {
+        const requestsResponse = await getReceivedRequests();
+        requests = normalizeArray(requestsResponse, 'requests');
+      } catch (err) {
+        console.error('Error fetching requests:', err);
+      }
+      
+      // Total completed donations (status in lowercase)
+      const completedDonations = donations.filter((d: any) => {
+        const status = d.status?.toLowerCase();
+        return status === 'completed' || status === 'collected' || status === 'finished';
+      }).length;
+      
+      // Unique beneficiaries helped (from requests that were collected/completed)
+      const uniqueBeneficiaries = new Set(
+        requests
+          .filter((r: any) => {
+            const status = r.status?.toLowerCase();
+            return status === 'collected' || status === 'completed';
+          })
+          .map((r: any) => r.beneficiaryId || r.beneficiary?.id)
+          .filter(Boolean)
+      ).size;
+      
+      // Average rating from requests
+      const ratedRequests = requests.filter((r: any) => r.rating && r.rating > 0);
+      const avgRating = ratedRequests.length > 0 
+        ? ratedRequests.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / ratedRequests.length
+        : 0;
+      
+      // Joined date
+      const joinedDate = userData?.createdAt 
+        ? new Date(userData.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+        : 'January 2025';
+      
+      setProfileData({
+        businessName: donorProfile?.organizationName || userData?.name || 'My Business',
+        businessType: donorProfile?.businessType || 'Restaurant',
+        contactName: userData?.name || '',
+        email: userData?.email || '',
+        phone: userData?.phone || '',
+        address: userData?.address || '',
+        registrationNumber: donorProfile?.registrationNumber || 'Not specified',
+        taxNumber: donorProfile?.taxNumber || 'Not specified',
+        joinedDate: joinedDate,
+        totalDonations: completedDonations,
+        totalBeneficiaries: uniqueBeneficiaries,
+        rating: parseFloat(avgRating.toFixed(1))
+      });
+      
+    } catch (err: any) {
+      console.error('Error fetching profile:', err);
+      setError(err.message || 'Failed to load profile');
+      toast.error('Failed to load profile');
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProfile();
   }, []);
 
@@ -143,10 +152,9 @@ const DonorProfile = () => {
     setError(null);
     
     try {
+      // Backend only accepts 'name', 'phone', 'address' for PUT /auth/profile
       const updateData = {
         name: profileData.contactName,
-        businessName: profileData.businessName,
-        businessType: profileData.businessType,
         phone: profileData.phone,
         address: profileData.address,
       };
@@ -154,11 +162,12 @@ const DonorProfile = () => {
       const response = await updateProfile(updateData);
       console.log('Update response:', response);
       
-      if (response?.success || response?.data) {
+      // Check success (backend returns { user: {...} } or { success: true })
+      if (response?.user || response?.data?.user || response?.success) {
         toast.success('Profile updated successfully! ✅');
         setIsEditing(false);
-        // Refresh profile data
-        window.location.reload();
+        // Refresh profile data without page reload
+        await fetchProfile();
       } else {
         const errorMsg = response?.message || 'Failed to update profile';
         setError(errorMsg);
@@ -166,7 +175,7 @@ const DonorProfile = () => {
       }
     } catch (err: any) {
       console.error('Error updating profile:', err);
-      const errorMsg = err.message || 'An error occurred while updating';
+      const errorMsg = err.data?.message || err.message || 'An error occurred while updating';
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -198,20 +207,25 @@ const DonorProfile = () => {
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-semibold text-gray-900">Business Profile</h1>
-            <button 
-              onClick={() => {
-                if (isEditing) {
-                  setIsEditing(false);
-                  window.location.reload();
-                } else {
-                  setIsEditing(true);
-                }
-              }} 
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              <FaEdit size={14} /> 
-              {isEditing ? 'Cancel' : 'Edit Profile'}
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={fetchProfile}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                title="Refresh"
+              >
+                <FaSyncAlt className={refreshing ? 'animate-spin' : ''} size={14} />
+                Refresh
+              </button>
+              {!isEditing && (
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  <FaEdit size={14} /> Edit Profile
+                </button>
+              )}
+            </div>
           </div>
 
           {error && (
@@ -310,45 +324,70 @@ const DonorProfile = () => {
             ) : (
               <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Read-only business info */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
-                    <input type="text" name="businessName" value={profileData.businessName} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" required />
+                    <input type="text" value={profileData.businessName} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" disabled />
+                    <p className="text-xs text-gray-400 mt-1">Contact admin to change business info</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
-                    <select name="businessType" value={profileData.businessType} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                      <option>Restaurant</option>
-                      <option>Bakery</option>
-                      <option>Supermarket</option>
-                      <option>Hotel</option>
-                      <option>Catering</option>
-                      <option>Other</option>
-                    </select>
+                    <input type="text" value={profileData.businessType} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" disabled />
                   </div>
+                  
+                  {/* Editable fields */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
-                    <input type="text" name="contactName" value={profileData.contactName} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" required />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name *</label>
+                    <input 
+                      type="text" 
+                      name="contactName" 
+                      value={profileData.contactName} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" 
+                      required 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" value={profileData.email} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" disabled />
+                    <input type="email" value={profileData.email} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" disabled />
                     <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                    <input type="tel" name="phone" value={profileData.phone} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" />
+                    <input 
+                      type="tel" 
+                      name="phone" 
+                      value={profileData.phone} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                    <input type="text" name="address" value={profileData.address} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" />
+                    <input 
+                      type="text" 
+                      name="address" 
+                      value={profileData.address} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" 
+                    />
                   </div>
                 </div>
                 <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100">
-                  <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsEditing(false)} 
+                    disabled={saving} 
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
                     <FaTimes className="inline mr-1" /> Cancel
                   </button>
-                  <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    {saving ? <FaSpinner className="inline animate-spin mr-1" /> : <FaSave className="inline mr-1" />}
+                  <button 
+                    type="submit" 
+                    disabled={saving} 
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>

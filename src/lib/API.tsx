@@ -660,3 +660,19 @@ export const deleteNotification = async (id: string) => {
   });
   return handleResponse(response);
 };
+
+// src/lib/API.ts
+
+// Mettre à jour un don
+export const updateDonation = async (id: string, donationData: any) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_URL}/donations/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(donationData),
+  });
+  return handleResponse(response);
+};

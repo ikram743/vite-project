@@ -315,7 +315,10 @@ const DonorReservations = () => {
                           <FaComment size={12} /> Contact
                         </button>
                         <button 
-                          onClick={() => navigate(`/donor/reservations/${res.id}`)}
+                          onClick={() => {
+                            toast('Reservation detail pages are not available yet. Opening reservations list instead.');
+                            navigate('/donor/reservations');
+                          }}
                           className="px-3 py-1.5 bg-primary-50 text-primary-600 text-sm rounded-lg hover:bg-primary-100 transition-colors flex items-center gap-1"
                         >
                           <FaEye size={12} /> Details

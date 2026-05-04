@@ -1,5 +1,6 @@
 // pages/admin/Donors.tsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiSearch,
   FiEye,
@@ -22,6 +23,7 @@ import {
   deleteUser,
   activateUser,
   deactivateUser,
+  register,
 } from "../../lib/API";
 import toast from "react-hot-toast";
 
@@ -43,12 +45,25 @@ interface Donor {
 }
 
 const Donors: React.FC = () => {
+  const navigate = useNavigate();
   const [donors, setDonors] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedDonor, setSelectedDonor] = useState<Donor | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creatingDonor, setCreatingDonor] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    businessName: "",
+    businessType: "",
+    password: "",
+    confirmPassword: "",
+  });
 
   const fetchDonors = async () => {
     try {
@@ -93,10 +108,10 @@ const Donors: React.FC = () => {
   const handleDeactivate = async (id: string) => {
     try {
       await deactivateUser(id);
-      toast.success("Donor deactivated");
+      toast.success("Donor suspended successfully");
       fetchDonors();
     } catch (error) {
-      toast.error("Failed to deactivate donor");
+      toast.error("Failed to suspend donor");
     }
   };
 
@@ -109,6 +124,45 @@ const Donors: React.FC = () => {
       } catch (error) {
         toast.error("Failed to delete donor");
       }
+    }
+  };
+
+  const handleCreateDonor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    try {
+      setCreatingDonor(true);
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        address: formData.address,
+        role: "donor",
+        businessName: formData.businessName,
+        businessType: formData.businessType,
+      });
+      toast.success("Donor created successfully");
+      setShowCreateModal(false);
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        address: "",
+        businessName: "",
+        businessType: "",
+        password: "",
+        confirmPassword: "",
+      });
+      fetchDonors();
+    } catch (error) {
+      toast.error("Failed to create donor");
+    } finally {
+      setCreatingDonor(false);
     }
   };
 
@@ -181,7 +235,10 @@ const Donors: React.FC = () => {
             <FiRefreshCw className="w-4 h-4" />
             Actualiser
           </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition"
+          >
             <FiPlus className="w-4 h-4" />
             Ajouter un donateur
           </button>
@@ -302,6 +359,7 @@ const Donors: React.FC = () => {
                         <button
                           onClick={() => handleDeactivate(donor.id)}
                           className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                          title="Suspend this donor"
                         >
                           <FiXCircle className="w-4 h-4" />
                         </button>
@@ -329,7 +387,169 @@ const Donors: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Create Modal */}
+      {showCreateModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Créer un nouveau donateur
+                </h2>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <FiXCircle className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            <form onSubmit={handleCreateDonor} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nom complet
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Nom du contact"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Téléphone
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="+213..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nom de l'entreprise
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.businessName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, businessName: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Nom de l'entreprise"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type d'entreprise
+                </label>
+                <select
+                  value={formData.businessType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, businessType: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="">Sélectionner...</option>
+                  <option value="Restaurant">Restaurant</option>
+                  <option value="Épicerie">Épicerie</option>
+                  <option value="Boulangerie">Boulangerie</option>
+                  <option value="Hôtel">Hôtel</option>
+                  <option value="Autre">Autre</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Adresse
+                </label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Adresse"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mot de passe
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="••••••••"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirmer le mot de passe
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      confirmPassword: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="••••••••"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={creatingDonor}
+                className="w-full bg-emerald-600 text-white py-2 rounded-xl hover:bg-emerald-700 transition disabled:opacity-50"
+              >
+                {creatingDonor ? "Création..." : "Créer le donateur"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
       {showModal && selectedDonor && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"

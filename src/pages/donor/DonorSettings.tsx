@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DonorSidebar from '../../components/donor/DonorSidebar';
-import { FaSave, FaBell, FaShieldAlt, FaGlobe, FaPalette, FaSpinner } from 'react-icons/fa';
-import { getProfile, updateProfile } from '../../lib/API';
+import { FaSave, FaBell, FaShieldAlt, FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 interface SettingsType {
@@ -12,8 +11,6 @@ interface SettingsType {
   reservationAlerts: boolean;
   expiryAlerts: boolean;
   twoFactorAuth: boolean;
-  language: string;
-  theme: string;
 }
 
 const DonorSettings = () => {
@@ -31,38 +28,28 @@ const DonorSettings = () => {
     smsNotifications: false,
     reservationAlerts: true,
     expiryAlerts: true,
-    twoFactorAuth: false,
-    language: 'en',
-    theme: 'light'
+    twoFactorAuth: false
   });
 
-  // Load user preferences from API
+  // Load saved preferences from localStorage
   useEffect(() => {
     const loadSettings = async () => {
       try {
         setLoading(true);
-        const response = await getProfile();
-        console.log('Profile response:', response);
         
-        const userData = response?.data?.user || response?.user || response;
-        
-        // Load preferences from user data if available
-        if (userData?.preferences) {
-          setSettings(prev => ({
-            ...prev,
-            ...userData.preferences
-          }));
+        // Load notification preferences
+        const notifPrefs = localStorage.getItem('donor_notifications');
+        if (notifPrefs) {
+          try {
+            const parsed = JSON.parse(notifPrefs);
+            setSettings(prev => ({ ...prev, ...parsed }));
+          } catch(e) {}
         }
         
-        // Load language from user data
-        if (userData?.language) {
-          setSettings(prev => ({ ...prev, language: userData.language }));
-        }
-        
-        // Load theme from localStorage or user data
-        const savedTheme = localStorage.getItem('donor_theme');
-        if (savedTheme) {
-          setSettings(prev => ({ ...prev, theme: savedTheme as 'light' | 'dark' }));
+        // Load two-factor auth setting (just a UI preference, not functional)
+        const twoFactor = localStorage.getItem('donor_two_factor');
+        if (twoFactor === 'true') {
+          setSettings(prev => ({ ...prev, twoFactorAuth: true }));
         }
         
       } catch (err: any) {
@@ -76,21 +63,9 @@ const DonorSettings = () => {
     loadSettings();
   }, []);
 
-  // Apply theme when changed
-  useEffect(() => {
-    if (settings.theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('donor_theme', settings.theme);
-  }, [settings.theme]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, type } = e.target;
-    const value = type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
-    setSettings({ ...settings, [name]: value });
-    // Clear messages when user changes settings
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setSettings({ ...settings, [name]: checked });
     if (error) setError(null);
     if (success) setSuccess(null);
   };
@@ -101,38 +76,23 @@ const DonorSettings = () => {
     setSuccess(null);
     
     try {
-      // Prepare preferences data
-      const preferencesData = {
-        preferences: {
-          emailNotifications: settings.emailNotifications,
-          pushNotifications: settings.pushNotifications,
-          smsNotifications: settings.smsNotifications,
-          reservationAlerts: settings.reservationAlerts,
-          expiryAlerts: settings.expiryAlerts,
-          twoFactorAuth: settings.twoFactorAuth,
-          language: settings.language,
-          theme: settings.theme
-        },
-        language: settings.language
+      // Save notification preferences
+      const notifPrefs = {
+        emailNotifications: settings.emailNotifications,
+        pushNotifications: settings.pushNotifications,
+        smsNotifications: settings.smsNotifications,
+        reservationAlerts: settings.reservationAlerts,
+        expiryAlerts: settings.expiryAlerts
       };
+      localStorage.setItem('donor_notifications', JSON.stringify(notifPrefs));
       
-      const response = await updateProfile(preferencesData);
-      console.log('Update response:', response);
+      // Save two-factor auth preference (UI only)
+      localStorage.setItem('donor_two_factor', settings.twoFactorAuth ? 'true' : 'false');
       
-      if (response?.success || response?.data) {
-        setSuccess('Settings saved successfully!');
-        toast.success('Settings saved successfully! ✅');
-        // Apply language change
-        if (settings.language) {
-          localStorage.setItem('donor_language', settings.language);
-        }
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(null), 3000);
-      } else {
-        const errorMsg = response?.message || 'Failed to save settings';
-        setError(errorMsg);
-        toast.error(errorMsg);
-      }
+      setSuccess('Settings saved successfully!');
+      toast.success('Settings saved successfully! ✅');
+      setTimeout(() => setSuccess(null), 3000);
+      
     } catch (err: any) {
       console.error('Error saving settings:', err);
       const errorMsg = err.message || 'An error occurred while saving';
@@ -145,13 +105,13 @@ const DonorSettings = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex min-h-screen bg-gray-50">
         <DonorSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
         <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
           <div className="flex justify-center items-center h-96">
             <div className="text-center">
               <FaSpinner className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto" />
-              <p className="mt-4 text-gray-500 dark:text-gray-400">Loading settings...</p>
+              <p className="mt-4 text-gray-500">Loading settings...</p>
             </div>
           </div>
         </main>
@@ -160,51 +120,52 @@ const DonorSettings = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-gray-50">
       <DonorSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       
       <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
         <div className="p-8">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Settings</h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">Manage your account preferences</p>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2">Settings</h1>
+          <p className="text-gray-500 mb-6">Manage your account preferences</p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-green-600 dark:text-green-400 text-sm">
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-600 text-sm">
               {success}
             </div>
           )}
 
           {/* Tabs */}
-          <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
-            {[
-              { id: 'notifications', label: 'Notifications', icon: <FaBell /> },
-              { id: 'security', label: 'Security', icon: <FaShieldAlt /> },
-              { id: 'preferences', label: 'Preferences', icon: <FaGlobe /> },
-              { id: 'appearance', label: 'Appearance', icon: <FaPalette /> }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex gap-2 border-b border-gray-200 mb-6 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'notifications'
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <FaBell /> Notifications
+            </button>
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'security'
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <FaShieldAlt /> Security
+            </button>
           </div>
 
           {/* Settings Content */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             {activeTab === 'notifications' && (
               <div className="space-y-4">
                 {[
@@ -214,10 +175,10 @@ const DonorSettings = () => {
                   { id: 'reservationAlerts', label: 'Reservation Alerts', description: 'Notify when someone reserves your donation' },
                   { id: 'expiryAlerts', label: 'Expiry Alerts', description: 'Remind before your donations expire' }
                 ].map(notif => (
-                  <label key={notif.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  <label key={notif.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
                     <div>
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">{notif.label}</span>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{notif.description}</p>
+                      <span className="text-gray-700 font-medium">{notif.label}</span>
+                      <p className="text-xs text-gray-500 mt-0.5">{notif.description}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -233,10 +194,10 @@ const DonorSettings = () => {
 
             {activeTab === 'security' && (
               <div className="space-y-4">
-                <label className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
                   <div>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">Two-Factor Authentication</span>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Add an extra layer of security to your account</p>
+                    <span className="text-gray-700 font-medium">Two-Factor Authentication</span>
+                    <p className="text-xs text-gray-500 mt-0.5">Add an extra layer of security to your account</p>
                   </div>
                   <input
                     type="checkbox"
@@ -249,40 +210,7 @@ const DonorSettings = () => {
               </div>
             )}
 
-            {activeTab === 'preferences' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
-                <select
-                  name="language"
-                  value={settings.language}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="en">🇬🇧 English</option>
-                  <option value="fr">🇫🇷 Français</option>
-                  <option value="ar">🇩🇿 العربية</option>
-                </select>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Choose your preferred language for the interface</p>
-              </div>
-            )}
-
-            {activeTab === 'appearance' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Theme</label>
-                <select
-                  name="theme"
-                  value={settings.theme}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="light">☀️ Light</option>
-                  <option value="dark">🌙 Dark</option>
-                </select>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Switch between light and dark mode</p>
-              </div>
-            )}
-
-            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <div className="mt-6 pt-4 border-t border-gray-100 flex gap-3">
               <button
                 onClick={handleSave}
                 disabled={saving}

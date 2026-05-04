@@ -28,6 +28,8 @@ const DonorSurplus = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewingItem, setViewingItem] = useState<SurplusItem | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
 
   const loadSurplus = async () => {
     try {
@@ -36,14 +38,7 @@ const DonorSurplus = () => {
       const response = await getMyDonations();
       console.log('My donations response:', response);
       
-      let donations = [];
-      if (response?.data?.donations) {
-        donations = response.data.donations;
-      } else if (response?.donations) {
-        donations = response.donations;
-      } else if (Array.isArray(response)) {
-        donations = response;
-      }
+      const donations = normalizeDonations(response);
       
       const formattedItems: SurplusItem[] = donations.map((donation: any) => ({
         id: donation.id,
@@ -99,6 +94,28 @@ const DonorSurplus = () => {
     }
   };
 
+  const normalizeDonations = (response: any): any[] => {
+    const findArray = (value: any): any[] | null => {
+      if (Array.isArray(value)) return value;
+      if (value && typeof value === 'object') {
+        for (const key of Object.keys(value)) {
+          const found = findArray(value[key]);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    if (!response) return [];
+    if (Array.isArray(response)) return response;
+
+    const arrayFromResponse = findArray(response);
+    if (arrayFromResponse) return arrayFromResponse;
+
+    console.warn('Unexpected donations response format:', response);
+    return [];
+  };
+
   const getStatusClass = (status: string) => {
     switch(status) {
       case 'available': return 'bg-emerald-100 text-emerald-700';
@@ -125,11 +142,18 @@ const DonorSurplus = () => {
   };
 
   const handleEdit = (id: string) => {
-    navigate(`/donor/edit-surplus/${id}`);
+    if (!id) {
+      toast.error('Invalid donation ID');
+      return;
+    }
+    console.log('Editing donation with ID:', id);
+    // Navigate to add surplus page with edit mode
+    navigate(`/donor/surplus/add?edit=${id}`);
   };
 
-  const handleView = (id: string) => {
-    navigate(`/donor/surplus/${id}`);
+  const handleView = (item: SurplusItem) => {
+    setViewingItem(item);
+    setShowViewModal(true);
   };
 
   useEffect(() => {
@@ -179,7 +203,7 @@ const DonorSurplus = () => {
               <p className="text-gray-500 mt-1">Manage all your food surplus listings</p>
             </div>
             <button 
-              onClick={() => navigate('/donor/add-surplus')} 
+              onClick={() => navigate('/donor/surplus/add')} 
               className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               <FaPlus size={14} /> Add New Surplus
@@ -235,7 +259,7 @@ const DonorSurplus = () => {
                   : "You haven't added any surplus yet"}
               </p>
               <button 
-                onClick={() => navigate('/donor/add-surplus')} 
+                onClick={() => navigate('/donor/surplus/add')} 
                 className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 Add Your First Surplus
@@ -292,7 +316,7 @@ const DonorSurplus = () => {
                               {deletingId === item.id ? <FaSpinner className="animate-spin" size={14} /> : <FaTrash size={14} />}
                             </button>
                             <button 
-                              onClick={() => handleView(item.id)}
+                              onClick={() => handleView(item)}
                               className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center"
                             >
                               <FaEye size={14} />
@@ -326,6 +350,91 @@ const DonorSurplus = () => {
               <span className="text-sm text-gray-500">Completed</span>
             </div>
           </div>
+
+          {/* View Details Modal */}
+          {showViewModal && viewingItem && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Food Details</h2>
+                  <button 
+                    onClick={() => setShowViewModal(false)}
+                    className="text-gray-400 hover:text-gray-600 text-2xl font-light"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Name</p>
+                    <p className="text-gray-900 font-medium">{viewingItem.name}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Category</p>
+                      <p className="text-gray-900 font-medium">{viewingItem.category}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Quantity</p>
+                      <p className="text-gray-900 font-medium">{viewingItem.quantity}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Status</p>
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold mt-1 ${getStatusClass(viewingItem.status)}`}>
+                        {viewingItem.status}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Expiry Date</p>
+                      <p className="text-gray-900 font-medium">{viewingItem.expiry}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500">Requests</p>
+                    <p className="text-gray-900 font-medium">{viewingItem.requests > 0 ? `${viewingItem.requests} request(s)` : 'No requests'}</p>
+                  </div>
+                  
+                  {viewingItem.description && (
+                    <div>
+                      <p className="text-sm text-gray-500">Description</p>
+                      <p className="text-gray-900">{viewingItem.description}</p>
+                    </div>
+                  )}
+                  
+                  {viewingItem.pickupAddress && (
+                    <div>
+                      <p className="text-sm text-gray-500">Pickup Address</p>
+                      <p className="text-gray-900">{viewingItem.pickupAddress}</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+                  <button 
+                    onClick={() => {
+                      setShowViewModal(false);
+                      handleEdit(viewingItem.id);
+                    }}
+                    className="flex-1 px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-colors font-medium text-sm"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => setShowViewModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium text-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

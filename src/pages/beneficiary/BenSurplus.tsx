@@ -1,9 +1,9 @@
 // src/pages/beneficiary/BenSurplus.tsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import BenSidebar from '../../components/beneficiary/BenSidebar';
 import { FaSpinner, FaStore, FaBox, FaCalendarAlt, FaMapMarkerAlt, FaSearch, FaFilter, FaUtensils } from 'react-icons/fa';
-import { getDonations, createRequest, getWilayas } from '../../lib/API';
+import { getDonations, getDonationsNearby, createRequest, getWilayas } from '../../lib/API';
 import toast from 'react-hot-toast';
 
 interface Donation {
@@ -25,6 +25,7 @@ interface Donation {
 
 const BenSurplus = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +33,12 @@ const BenSurplus = () => {
   const [selectedWilaya, setSelectedWilaya] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [radius, setRadius] = useState<number>(() => {
+    const savedRadius = localStorage.getItem('search_radius') || localStorage.getItem('app_radius');
+    const value = savedRadius ? parseInt(savedRadius, 10) : 10;
+    return Number.isNaN(value) ? 10 : value;
+  });
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
@@ -51,22 +58,62 @@ const BenSurplus = () => {
     loadDonations();
   }, []);
 
+  useEffect(() => {
+    const donationId = searchParams.get('donation');
+    if (donationId && donations.length > 0) {
+      const donation = donations.find(d => d.id === donationId);
+      if (donation) {
+        handleReserveClick(donation);
+      }
+    }
+  }, [searchParams, donations]);
+
+  const getBrowserLocation = async (): Promise<{ lat: number; lng: number } | null> => {
+    if (!navigator?.geolocation) return null;
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+        (error) => {
+          console.warn('Geolocation unavailable:', error);
+          resolve(null);
+        },
+        { timeout: 10000 },
+      );
+    });
+  };
+
+  const normalizeDonations = (response: any): any[] => {
+    if (!response) return [];
+    if (Array.isArray(response)) return response;
+    if (Array.isArray(response?.donations)) return response.donations;
+    if (Array.isArray(response?.data?.donations)) return response.data.donations;
+    if (Array.isArray(response?.data)) return response.data;
+    if (Array.isArray(response?.results)) return response.results;
+    return [];
+  };
+
   const loadDonations = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getDonations(1, 50);
-      console.log('Donations response:', response);
-      
-      let donationsData = [];
-      if (response && response.donations) {
-        donationsData = response.donations;
-      } else if (response && response.data) {
-        donationsData = response.data;
-      } else if (Array.isArray(response)) {
-        donationsData = response;
+
+      const savedRadius = parseInt(localStorage.getItem('search_radius') || localStorage.getItem('app_radius') || `${radius}`, 10);
+      if (!Number.isNaN(savedRadius) && savedRadius !== radius) {
+        setRadius(savedRadius);
       }
-      
+
+      const currentLocation = await getBrowserLocation();
+      setLocation(currentLocation);
+
+      let response: any;
+      if (currentLocation) {
+        response = await getDonationsNearby(currentLocation.lat, currentLocation.lng, savedRadius || 10);
+      } else {
+        response = await getDonations(1, 50);
+      }
+
+      console.log('Donations response:', response);
+      const donationsData = normalizeDonations(response);
       setDonations(donationsData);
     } catch (err: any) {
       console.error('Error loading donations:', err);
@@ -107,7 +154,7 @@ const BenSurplus = () => {
       if (response?.success || response?.request || response?.data) {
         toast.success('Reservation created successfully! 🎉');
         setShowModal(false);
-        loadDonations(); // Refresh the list
+        loadDonations();
       } else {
         const errorMsg = response?.message || 'Failed to create reservation';
         toast.error(errorMsg);
@@ -163,14 +210,13 @@ const BenSurplus = () => {
       
       <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'}`}>
         <div className="p-6">
-          {/* Header */}
           <div className="mb-6">
             <div className="flex items-center gap-2 text-primary-600 mb-1">
               <FaUtensils className="text-sm" />
               <span className="text-xs font-medium uppercase tracking-wide">Food Surplus</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-800">Available Food Surplus</h1>
-            <p className="text-gray-500 mt-1">Browse and reserve food donations near you</p>
+            <p className="text-gray-500 mt-1">Browse and reserve food near you within {radius} km</p>
           </div>
 
           {error && (
@@ -180,7 +226,6 @@ const BenSurplus = () => {
             </div>
           )}
 
-          {/* Search and Filter */}
           <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-gray-100">
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[200px]">
@@ -213,7 +258,6 @@ const BenSurplus = () => {
             </div>
           </div>
 
-          {/* Donations Grid */}
           {filteredDonations.length === 0 ? (
             <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -236,27 +280,20 @@ const BenSurplus = () => {
                       {formatDate(donation.expirationDate)}
                     </span>
                   </div>
-                  
                   <p className="text-primary-600 text-sm mt-1 flex items-center gap-1">
                     <FaStore className="text-xs" /> {donation.donor?.user?.name || 'Donor'}
                   </p>
-                  
                   <div className="flex flex-wrap gap-3 text-sm text-gray-500 mt-3">
                     <span className="flex items-center gap-1"><FaBox className="text-xs" /> {donation.totalQuantity} {donation.unit}</span>
                     <span className="flex items-center gap-1"><FaCalendarAlt className="text-xs" /> {new Date(donation.expirationDate).toLocaleDateString()}</span>
                     <span className="flex items-center gap-1"><FaMapMarkerAlt className="text-xs" /> {donation.pickupAddress.split(',')[0]}</span>
                   </div>
-                  
                   {donation.requiresRefrigeration && (
-                    <span className="inline-block mt-2 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
-                      ❄️ Requires refrigeration
-                    </span>
+                    <span className="inline-block mt-2 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">❄️ Requires refrigeration</span>
                   )}
-                  
                   {donation.description && (
                     <p className="text-gray-500 text-sm mt-2 line-clamp-2">{donation.description}</p>
                   )}
-                  
                   <button
                     onClick={() => handleReserveClick(donation)}
                     className="w-full mt-4 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium"
@@ -270,7 +307,6 @@ const BenSurplus = () => {
         </div>
       </main>
 
-      {/* Reservation Modal */}
       {showModal && selectedDonation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
@@ -278,7 +314,6 @@ const BenSurplus = () => {
               <h3 className="text-xl font-semibold text-gray-900">Reserve Food</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
-            
             <div className="mb-4 space-y-2">
               <p className="text-gray-600"><strong className="text-gray-800">Food:</strong> {selectedDonation.foodType}</p>
               <p className="text-gray-600"><strong className="text-gray-800">Donor:</strong> {selectedDonation.donor?.user?.name}</p>
@@ -288,43 +323,17 @@ const BenSurplus = () => {
                 <p className="text-gray-600"><strong className="text-gray-800">Pickup Time:</strong> {selectedDonation.pickupTime}</p>
               )}
             </div>
-            
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Quantity ({selectedDonation.unit})</label>
-              <input
-                type="number"
-                min="1"
-                max={selectedDonation.totalQuantity}
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-              />
+              <input type="number" min="1" max={selectedDonation.totalQuantity} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500" />
             </div>
-            
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-              <textarea
-                rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any special instructions or requirements..."
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
-              />
+              <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add any special instructions or requirements..." className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500" />
             </div>
-            
             <div className="flex gap-3">
-              <button 
-                onClick={() => setShowModal(false)} 
-                className="flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                disabled={reserving}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleConfirmReserve} 
-                disabled={reserving}
-                className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
+              <button onClick={() => setShowModal(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors" disabled={reserving}>Cancel</button>
+              <button onClick={handleConfirmReserve} disabled={reserving} className="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 {reserving ? <FaSpinner className="animate-spin" /> : null}
                 {reserving ? 'Reserving...' : 'Confirm Reservation'}
               </button>

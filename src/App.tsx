@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./context/authContext";
 import "./App.css";
 
@@ -52,24 +52,24 @@ const ProtectedRoute = ({
   allowedRoles?: string[];
 }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
-  if (loading)
+  if (loading) return <div>Loading...</div>;
+
+  // ✅ Vérification TOUJOURS active
+  const token = localStorage.getItem("token");
+  if (!token || !user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Navigate to="/auth?mode=signin" state={{ from: location }} replace />
     );
+  }
 
-  if (!user) return <Navigate to="/auth?mode=signin" replace />;
-  if (allowedRoles && !allowedRoles.includes(user.role))
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
+  }
 
   return children;
 };
-
 function App() {
   return (
     <Routes>

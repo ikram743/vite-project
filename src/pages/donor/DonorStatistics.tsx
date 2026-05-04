@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DonorSidebar from '../../components/donor/DonorSidebar';
 import { FaBox, FaWeight, FaUsers, FaStar, FaChartLine, FaSpinner } from 'react-icons/fa';
-import { getMyDonations, getReceivedRequests, getDashboardStats } from '../../lib/API';
+import { getMyDonations, getReceivedRequests } from '../../lib/API';
 import toast from 'react-hot-toast';
 
 interface MonthlyData {
@@ -16,6 +16,17 @@ interface CategoryData {
   percent: number;
   count: number;
 }
+
+// Helper to safely extract array from API responses
+const normalizeArray = (response: any, key?: string): any[] => {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (key && response[key] && Array.isArray(response[key])) return response[key];
+  if (response.data && Array.isArray(response.data)) return response.data;
+  if (response.donations && Array.isArray(response.donations)) return response.donations;
+  if (response.requests && Array.isArray(response.requests)) return response.requests;
+  return [];
+};
 
 const DonorStatistics = () => {
   const navigate = useNavigate();
@@ -48,44 +59,37 @@ const DonorStatistics = () => {
       const donationsResponse = await getMyDonations();
       console.log('Donations response:', donationsResponse);
       
-      let donations = [];
-      if (donationsResponse?.data?.donations) {
-        donations = donationsResponse.data.donations;
-      } else if (donationsResponse?.donations) {
-        donations = donationsResponse.donations;
-      } else if (Array.isArray(donationsResponse)) {
-        donations = donationsResponse;
-      }
+      // Use normalizeArray to safely extract donations
+      let donations = normalizeArray(donationsResponse, 'donations');
       
       // Get requests for beneficiaries and ratings
       const requestsResponse = await getReceivedRequests();
       console.log('Requests response:', requestsResponse);
       
-      let requests = [];
-      if (requestsResponse?.data?.requests) {
-        requests = requestsResponse.data.requests;
-      } else if (requestsResponse?.requests) {
-        requests = requestsResponse.requests;
-      } else if (Array.isArray(requestsResponse)) {
-        requests = requestsResponse;
-      }
+      // Use normalizeArray to safely extract requests
+      let requests = normalizeArray(requestsResponse, 'requests');
       
-      // Calculate total stats
-      const completedDonations = donations.filter((d: any) => 
-        d.status === 'COMPLETED' || d.status === 'COLLECTED' || d.status === 'FINISHED'
-      );
+      // Calculate total stats (using lowercase status)
+      const completedDonations = donations.filter((d: any) => {
+        const status = d.status?.toLowerCase();
+        return status === 'completed' || status === 'collected' || status === 'finished';
+      });
       
       const totalDonations = completedDonations.length;
       const totalQuantity = completedDonations.reduce((sum: number, d: any) => 
         sum + (d.totalQuantity || d.quantity || 0), 0
       );
       
-      // Calculate unique beneficiaries
-      const uniqueBeneficiaries = new Set(requests.map((r: any) => 
+      // Calculate unique beneficiaries (based on completed requests)
+      const completedRequests = requests.filter((r: any) => {
+        const status = r.status?.toLowerCase();
+        return status === 'collected' || status === 'completed';
+      });
+      const uniqueBeneficiaries = new Set(completedRequests.map((r: any) => 
         r.beneficiaryId || r.beneficiary?.id
       )).size;
       
-      // Calculate average rating
+      // Calculate average rating from rated requests
       const ratedRequests = requests.filter((r: any) => r.rating && r.rating > 0);
       const avgRating = ratedRequests.length > 0 
         ? ratedRequests.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / ratedRequests.length
@@ -98,12 +102,13 @@ const DonorStatistics = () => {
         averageRating: parseFloat(avgRating.toFixed(1))
       });
       
-      // Process monthly data
+      // Process monthly data from completed donations
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const monthlyMap = new Map();
       
       completedDonations.forEach((donation: any) => {
-        const date = donation.createdAt || donation.completedAt || new Date();
+        const date = donation.createdAt || donation.completedAt || donation.updatedAt;
+        if (!date) return;
         const month = new Date(date).getMonth();
         const quantity = donation.totalQuantity || donation.quantity || 0;
         
@@ -116,8 +121,9 @@ const DonorStatistics = () => {
       });
       
       const monthlyArray: MonthlyData[] = [];
-      for (let i = 0; i < 6; i++) {
-        const monthIndex = (new Date().getMonth() - 5 + i + 12) % 12;
+      const currentMonth = new Date().getMonth();
+      for (let i = 5; i >= 0; i--) {
+        const monthIndex = (currentMonth - i + 12) % 12;
         const data = monthlyMap.get(monthIndex) || { donations: 0, quantity: 0 };
         monthlyArray.push({
           month: monthNames[monthIndex],
@@ -129,14 +135,21 @@ const DonorStatistics = () => {
       setMonthlyData(monthlyArray);
       setMaxDonations(Math.max(...monthlyArray.map(d => d.donations), 1));
       
-      // Process category distribution
+      // Process category distribution from ALL donations (not just completed)
       const categoryMap = new Map();
       donations.forEach((donation: any) => {
-        const category = donation.category || 
-                        (donation.foodType?.toLowerCase().includes('bread') ? 'Bakery' :
-                         donation.foodType?.toLowerCase().includes('vegetable') ? 'Vegetables' :
-                         donation.foodType?.toLowerCase().includes('fruit') ? 'Fruits' :
-                         donation.foodType?.toLowerCase().includes('meal') ? 'Prepared Food' : 'Other');
+        let category = donation.category || '';
+        if (!category) {
+          const foodType = donation.foodType?.toLowerCase() || '';
+          if (foodType.includes('bread') || foodType.includes('bakery')) category = 'Bakery';
+          else if (foodType.includes('vegetable')) category = 'Vegetables';
+          else if (foodType.includes('fruit')) category = 'Fruits';
+          else if (foodType.includes('meal')) category = 'Prepared Food';
+          else category = 'Other';
+        } else {
+          // Capitalize first letter
+          category = category.charAt(0).toUpperCase() + category.slice(1);
+        }
         
         if (!categoryMap.has(category)) {
           categoryMap.set(category, 0);
@@ -148,8 +161,8 @@ const DonorStatistics = () => {
       const categoryArray: CategoryData[] = Array.from(categoryMap.entries())
         .map(([name, count]) => ({
           name,
-          count,
-          percent: totalItems > 0 ? Math.round((count / totalItems) * 100) : 0
+          count: count as number,
+          percent: totalItems > 0 ? Math.round(((count as number) / totalItems) * 100) : 0
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);

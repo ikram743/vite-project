@@ -415,7 +415,7 @@ const DonorDashboard = () => {
                     <div 
                       key={item.id} 
                       className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer"
-                      onClick={() => navigate(`/donor/surplus/${item.id}`)}
+                      onClick={() => navigate('/donor/surplus')}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
@@ -437,7 +437,7 @@ const DonorDashboard = () => {
                     <FaUtensils className="text-4xl text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-500">No surplus yet</p>
                     <button 
-                      onClick={() => navigate('/donor/add-surplus')} 
+                      onClick={() => navigate('/donor/surplus/add')} 
                       className="mt-3 text-primary-600 text-sm hover:underline"
                     >
                       Create your first donation
@@ -460,7 +460,7 @@ const DonorDashboard = () => {
                     <div 
                       key={res.id} 
                       className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer"
-                      onClick={() => navigate(`/donor/reservations/${res.id}`)}
+                      onClick={() => navigate('/donor/reservations')}
                     >
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">

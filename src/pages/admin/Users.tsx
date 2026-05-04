@@ -71,10 +71,10 @@ const Users: React.FC = () => {
   const handleDeactivate = async (id: string) => {
     try {
       await deactivateUser(id);
-      toast.success("User deactivated");
+      toast.success("User suspended successfully");
       fetchUsers();
     } catch (error) {
-      toast.error("Failed to deactivate user");
+      toast.error("Failed to suspend user");
     }
   };
 
@@ -317,6 +317,7 @@ const Users: React.FC = () => {
                         <button
                           onClick={() => handleDeactivate(user.id)}
                           className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg"
+                          title="Suspend this user"
                         >
                           <FiXCircle className="w-4 h-4" />
                         </button>
