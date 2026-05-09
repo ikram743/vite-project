@@ -16,8 +16,6 @@ import Surplus from "./pages/admin/Surplus";
 import Distributions from "./pages/admin/Distributions";
 import Notifications from "./pages/admin/Notification";
 import Users from "./pages/admin/Users";
-import Impact from "./pages/admin/Impact";
-import Settings from "./pages/admin/Settings";
 import Profile from "./pages/admin/Profile";
 
 // Donor Pages
@@ -111,9 +109,7 @@ function App() {
         <Route path="notifications" element={<Notifications />} />
         <Route path="users" element={<Users />} />
 
-        {/* Analytics & Settings */}
-        <Route path="impact" element={<Impact />} />
-        <Route path="settings" element={<Settings />} />
+        {/* Profile */}
         <Route path="profile" element={<Profile />} />
       </Route>
       {/* ============================================

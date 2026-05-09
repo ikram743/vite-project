@@ -9,7 +9,12 @@ import {
   FiAlertCircle,
   FiCheckCircle,
   FiXCircle,
-  FiRefreshCw,
+  FiX,
+  FiMapPin,
+  FiCalendar,
+  FiUser,
+  FiPhone,
+  FiMail,
 } from "react-icons/fi";
 import { FaStore } from "react-icons/fa";
 import { getDonations, deleteDonation } from "../../lib/API";
@@ -38,6 +43,10 @@ const Surplus: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [selectedSurplus, setSelectedSurplus] = useState<SurplusItem | null>(
+    null,
+  );
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchSurplus = async () => {
     try {
@@ -69,6 +78,16 @@ const Surplus: React.FC = () => {
     }
   };
 
+  const handleDetail = (item: SurplusItem) => {
+    setSelectedSurplus(item);
+    setShowDetailModal(true);
+  };
+
+  const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedSurplus(null);
+  };
+
   const filteredSurplus = surplus.filter((item) => {
     const matchesSearch =
       item.foodType.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,25 +111,25 @@ const Surplus: React.FC = () => {
       case "available":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-            <FiCheckCircle className="w-3 h-3" /> Disponible
+            <FiCheckCircle className="w-3 h-3" /> Available
           </span>
         );
       case "completed":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-            <FiCheckCircle className="w-3 h-3" /> Distribué
+            <FiCheckCircle className="w-3 h-3" /> Distributed
           </span>
         );
       case "expired":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-            <FiXCircle className="w-3 h-3" /> Expiré
+            <FiXCircle className="w-3 h-3" /> Expired
           </span>
         );
       case "cancelled":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-            <FiXCircle className="w-3 h-3" /> Annulé
+            <FiXCircle className="w-3 h-3" /> Cancelled
           </span>
         );
       default:
@@ -144,19 +163,10 @@ const Surplus: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">
-            Gestion des Surplus
+            Surplus Management
           </h1>
-          <p className="text-gray-500 mt-1">
-            Gérez les annonces de surplus alimentaire
-          </p>
+          <p className="text-gray-500 mt-1">Manage food surplus listings</p>
         </div>
-        <button
-          onClick={fetchSurplus}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
-        >
-          <FiRefreshCw className="w-4 h-4" />
-          Actualiser
-        </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -168,15 +178,15 @@ const Surplus: React.FC = () => {
           <p className="text-2xl font-bold text-emerald-600">
             {stats.available}
           </p>
-          <p className="text-sm text-gray-500">Disponibles</p>
+          <p className="text-sm text-gray-500">Available</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100">
           <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
-          <p className="text-sm text-gray-500">Distribués</p>
+          <p className="text-sm text-gray-500">Distributed</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100">
           <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
-          <p className="text-sm text-gray-500">Expirés</p>
+          <p className="text-sm text-gray-500">Expired</p>
         </div>
       </div>
 
@@ -185,7 +195,7 @@ const Surplus: React.FC = () => {
           <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Rechercher par produit ou donateur..."
+            placeholder="Search by product or donor..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -196,11 +206,11 @@ const Surplus: React.FC = () => {
           onChange={(e) => setFilterStatus(e.target.value)}
           className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
-          <option value="all">Tous les statuts</option>
-          <option value="available">Disponibles</option>
-          <option value="completed">Distribués</option>
-          <option value="expired">Expirés</option>
-          <option value="cancelled">Annulés</option>
+          <option value="all">All Status</option>
+          <option value="available">Available</option>
+          <option value="completed">Distributed</option>
+          <option value="expired">Expired</option>
+          <option value="cancelled">Cancelled</option>
         </select>
       </div>
 
@@ -242,8 +252,11 @@ const Surplus: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-2 pt-3 border-t border-gray-100">
-              <button className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">
-                <FiEye className="w-4 h-4" /> Détails
+              <button
+                onClick={() => handleDetail(item)}
+                className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                <FiEye className="w-4 h-4" /> Details
               </button>
               <button
                 onClick={() => handleDelete(item.id)}
@@ -255,6 +268,121 @@ const Surplus: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedSurplus && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Surplus Details
+                </h2>
+                <button
+                  onClick={closeDetailModal}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FiPackage className="w-5 h-5 text-emerald-600" />
+                      <h3 className="font-semibold text-gray-800">
+                        Food Information
+                      </h3>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <p>
+                        <span className="font-medium">Type:</span>{" "}
+                        {selectedSurplus.foodType}
+                      </p>
+                      <p>
+                        <span className="font-medium">Quantity:</span>{" "}
+                        {selectedSurplus.availableQuantity} /{" "}
+                        {selectedSurplus.totalQuantity} {selectedSurplus.unit}
+                      </p>
+                      <p>
+                        <span className="font-medium">Status:</span>{" "}
+                        {getStatusBadge(selectedSurplus.status)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FiCalendar className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-semibold text-gray-800">
+                        Expiration
+                      </h3>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <p>
+                        <span className="font-medium">Date:</span>{" "}
+                        {new Date(
+                          selectedSurplus.expirationDate,
+                        ).toLocaleDateString()}
+                      </p>
+                      <p>
+                        <span className="font-medium">Status:</span>{" "}
+                        <span
+                          className={
+                            getExpiryStatus(selectedSurplus.expirationDate)
+                              .class
+                          }
+                        >
+                          {
+                            getExpiryStatus(selectedSurplus.expirationDate)
+                              .label
+                          }
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FiUser className="w-5 h-5 text-purple-600" />
+                    <h3 className="font-semibold text-gray-800">
+                      Donor Information
+                    </h3>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <p>
+                      <span className="font-medium">Name:</span>{" "}
+                      {selectedSurplus.donor?.user?.name ||
+                        selectedSurplus.donor?.organizationName ||
+                        "Unknown"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={closeDetailModal}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    closeDetailModal();
+                    handleDelete(selectedSurplus.id);
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition"
+                >
+                  Delete Item
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

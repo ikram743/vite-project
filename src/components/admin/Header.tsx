@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   FiBell,
   FiUser,
-  FiSettings,
   FiLogOut,
   FiChevronDown,
   FiCheckCircle,
@@ -42,8 +41,11 @@ const AdminHeader: React.FC = () => {
   const fetchNotifications = async () => {
     try {
       const res = await getNotifications();
-      setNotifications(res.notifications || []);
-      setUnreadCount(res.unreadCount || 0);
+      console.log("Header notifications response:", res); // Debug log
+      setNotifications(res.notifications || res || []);
+      setUnreadCount(
+        res.unreadCount || res.filter((n: any) => !n.isRead).length || 0,
+      );
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
@@ -78,14 +80,12 @@ const AdminHeader: React.FC = () => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === "/admin" || path === "/admin/dashboard") return "Dashboard";
-    if (path === "/admin/donors") return "Donateurs";
-    if (path === "/admin/beneficiaries") return "Bénéficiaires";
+    if (path === "/admin/donors") return "Donors";
+    if (path === "/admin/beneficiaries") return "Beneficiaries";
     if (path === "/admin/surplus") return "Surplus";
     if (path === "/admin/distributions") return "Distributions";
     if (path === "/admin/notifications") return "Notifications";
-    if (path === "/admin/impact") return "Impact";
-    if (path === "/admin/settings") return "Paramètres";
-    if (path === "/admin/profile") return "Mon profil";
+    if (path === "/admin/profile") return "My Profile";
     return "Administration";
   };
 
@@ -100,17 +100,12 @@ const AdminHeader: React.FC = () => {
     setShowDropdown(false);
   };
 
-  const goToSettings = () => {
-    navigate("/admin/settings");
-    setShowDropdown(false);
-  };
-
   const goToNotificationsPage = () => {
     navigate("/admin/notifications");
     setShowNotifications(false);
   };
 
-  // Marquer une notification comme lue
+  // Mark notification as read
   const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -126,7 +121,7 @@ const AdminHeader: React.FC = () => {
     }
   };
 
-  // Marquer toutes les notifications comme lues
+  // Mark all notifications as read
   const handleMarkAllAsRead = async () => {
     try {
       await markAllNotificationsAsRead();
@@ -134,14 +129,14 @@ const AdminHeader: React.FC = () => {
         prev.map((notif) => ({ ...notif, isRead: true })),
       );
       setUnreadCount(0);
-      toast.success("Toutes les notifications sont lues");
+      toast.success("All notifications marked as read");
     } catch (error) {
       console.error("Failed to mark all as read:", error);
-      toast.error("Erreur lors du marquage");
+      toast.error("Error marking notifications");
     }
   };
 
-  // Naviguer vers la notification
+  // Navigate to notification
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
       markNotificationAsRead(notification.id).catch(console.error);
@@ -177,13 +172,13 @@ const AdminHeader: React.FC = () => {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return "à l'instant";
-    if (diffMins < 60) return `il y a ${diffMins} min`;
-    if (diffHours < 24) return `il y a ${diffHours} h`;
-    return `il y a ${diffDays} j`;
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} h ago`;
+    return `${diffDays} d ago`;
   };
 
-  // Filtrer uniquement les notifications non lues
+  // Filter only unread notifications
   const unreadNotifications = notifications.filter((n) => !n.isRead);
 
   return (
@@ -213,7 +208,7 @@ const AdminHeader: React.FC = () => {
                       Notifications
                       {unreadCount > 0 && (
                         <span className="ml-2 text-xs text-emerald-600">
-                          ({unreadCount} non lue{unreadCount > 1 ? "s" : ""})
+                          ({unreadCount} unread)
                         </span>
                       )}
                     </h3>
@@ -223,7 +218,7 @@ const AdminHeader: React.FC = () => {
                         className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
                       >
                         <FiCheckCircle className="w-3 h-3" />
-                        Tout marquer lu
+                        Mark all as read
                       </button>
                     )}
                   </div>
@@ -233,9 +228,9 @@ const AdminHeader: React.FC = () => {
                   {unreadNotifications.length === 0 ? (
                     <div className="p-8 text-center text-gray-400">
                       <FiBell className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Aucune notification non lue</p>
+                      <p className="text-sm">No unread notifications</p>
                       <p className="text-xs mt-1">
-                        Les notifications lues sont dans l'historique
+                        Read notifications are in the history
                       </p>
                     </div>
                   ) : (
@@ -263,7 +258,7 @@ const AdminHeader: React.FC = () => {
                           <button
                             onClick={(e) => handleMarkAsRead(notif.id, e)}
                             className="w-2 h-2 bg-emerald-500 rounded-full hover:scale-125 transition"
-                            title="Marquer comme lu"
+                            title="Mark as read"
                           />
                         </div>
                       </div>
@@ -271,16 +266,15 @@ const AdminHeader: React.FC = () => {
                   )}
                 </div>
 
-                {notifications.length > 0 && (
-                  <div className="p-3 bg-gray-50 text-center border-t border-gray-100">
-                    <button
-                      onClick={goToNotificationsPage}
-                      className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                    >
-                      Voir toutes les notifications
-                    </button>
-                  </div>
-                )}
+                <div className="p-3 bg-gray-50 text-center border-t border-gray-100">
+                  <button
+                    onClick={goToNotificationsPage}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition w-full justify-center"
+                  >
+                    <FiBell className="w-4 h-4" />
+                    View all notifications
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -301,8 +295,9 @@ const AdminHeader: React.FC = () => {
                   {admin.name || "Administrateur"}
                 </p>
                 <p className="text-xs text-gray-400">Admin</p>
+
+                <FiChevronDown className="w-4 h-4 text-gray-400" />
               </div>
-              <FiChevronDown className="w-4 h-4 text-gray-400" />
             </button>
 
             {showDropdown && (
@@ -316,7 +311,7 @@ const AdminHeader: React.FC = () => {
                     </div>
                     <div>
                       <p className="font-semibold text-gray-800">
-                        {admin.name || "Administrateur"}
+                        {admin.name || "Admin"}
                       </p>
                       <p className="text-xs text-gray-500">
                         {admin.email || "admin@foodshare.dz"}
@@ -331,15 +326,7 @@ const AdminHeader: React.FC = () => {
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition text-left cursor-pointer"
                   >
                     <FiUser className="w-4 h-4" />
-                    <span>Mon profil</span>
-                  </button>
-
-                  <button
-                    onClick={goToSettings}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition text-left cursor-pointer"
-                  >
-                    <FiSettings className="w-4 h-4" />
-                    <span>Paramètres</span>
+                    <span>My Profile</span>
                   </button>
 
                   <div className="h-px bg-gray-100 my-2"></div>
@@ -349,7 +336,7 @@ const AdminHeader: React.FC = () => {
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition text-left cursor-pointer"
                   >
                     <FiLogOut className="w-4 h-4" />
-                    <span>Déconnexion</span>
+                    <span>Logout</span>
                   </button>
                 </div>
               </div>

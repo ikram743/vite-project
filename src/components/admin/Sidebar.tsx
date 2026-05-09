@@ -8,9 +8,6 @@ import {
   FiHeart,
   FiPackage,
   FiTruck,
-  FiBell,
-  FiBarChart2,
-  FiSettings,
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
@@ -30,13 +27,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   const navItems = [
     { path: "/admin", icon: FiHome, label: "Dashboard" },
-    { path: "/admin/donors", icon: FiUsers, label: "Donateurs" },
-    { path: "/admin/beneficiaries", icon: FiHeart, label: "Bénéficiaires" },
+    { path: "/admin/donors", icon: FiUsers, label: "Donors" },
+    { path: "/admin/beneficiaries", icon: FiHeart, label: "Beneficiaries" },
     { path: "/admin/surplus", icon: FiPackage, label: "Surplus" },
     { path: "/admin/distributions", icon: FiTruck, label: "Distributions" },
-    { path: "/admin/notifications", icon: FiBell, label: "Notifications" },
-    { path: "/admin/impact", icon: FiBarChart2, label: "Impact" },
-    { path: "/admin/settings", icon: FiSettings, label: "Paramètres" },
   ];
 
   return (

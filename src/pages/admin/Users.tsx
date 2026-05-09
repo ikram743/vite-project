@@ -11,7 +11,6 @@ import {
   FiPhone,
   FiCalendar,
   FiShield,
-  FiRefreshCw,
 } from "react-icons/fi";
 import { FaStore, FaHandHoldingHeart, FaUserShield } from "react-icons/fa";
 import {
@@ -180,22 +179,13 @@ const Users: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Utilisateurs</h1>
-          <p className="text-gray-500 mt-1">
-            Gérez tous les utilisateurs de la plateforme
-          </p>
+          <h1 className="text-2xl font-bold text-gray-800">Users</h1>
+          <p className="text-gray-500 mt-1">Manage all platform users</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={fetchUsers}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
-          >
-            <FiRefreshCw className="w-4 h-4" />
-            Actualiser
-          </button>
           <button className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition">
             <FiUserPlus className="w-4 h-4" />
-            Ajouter un utilisateur
+            Add User
           </button>
         </div>
       </div>
@@ -203,19 +193,19 @@ const Users: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100">
           <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
-          <p className="text-sm text-gray-500">Total utilisateurs</p>
+          <p className="text-sm text-gray-500">Total Users</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100">
           <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
-          <p className="text-sm text-gray-500">Actifs</p>
+          <p className="text-sm text-gray-500">Active</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100">
           <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
-          <p className="text-sm text-gray-500">En attente</p>
+          <p className="text-sm text-gray-500">Pending</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100">
           <p className="text-2xl font-bold text-red-600">{stats.suspended}</p>
-          <p className="text-sm text-gray-500">Suspendus</p>
+          <p className="text-sm text-gray-500">Suspended</p>
         </div>
       </div>
 
@@ -224,7 +214,7 @@ const Users: React.FC = () => {
           <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Rechercher par nom ou email..."
+            placeholder="Search by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -237,8 +227,8 @@ const Users: React.FC = () => {
         >
           <option value="all">Tous les rôles</option>
           <option value="admin">Administrateurs</option>
-          <option value="donor">Donateurs</option>
-          <option value="beneficiary">Bénéficiaires</option>
+          <option value="donor">Donors</option>
+          <option value="beneficiary">Beneficiaries</option>
         </select>
         <select
           value={filterStatus}

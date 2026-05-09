@@ -14,7 +14,6 @@ import {
   FiCalendar,
   FiHeart,
   FiUsers,
-  FiRefreshCw,
 } from "react-icons/fi";
 import { FaHandHoldingHeart } from "react-icons/fa";
 import {
@@ -24,6 +23,7 @@ import {
   activateUser,
   deactivateUser,
   register,
+  getWilayas, // Import the getWilayas function
 } from "../../lib/API";
 import toast from "react-hot-toast";
 
@@ -43,10 +43,19 @@ interface Beneficiary {
   };
 }
 
+interface Wilaya {
+  id: number;
+  name: string;
+  name_ar: string;
+  code: string;
+}
+
 const Beneficiaries: React.FC = () => {
   const navigate = useNavigate();
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
+  const [wilayas, setWilayas] = useState<Wilaya[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingWilayas, setLoadingWilayas] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedBeneficiary, setSelectedBeneficiary] =
@@ -59,6 +68,7 @@ const Beneficiaries: React.FC = () => {
     email: "",
     phone: "",
     address: "",
+    wilaya: "",
     organizationName: "",
     organizationType: "",
     password: "",
@@ -83,8 +93,23 @@ const Beneficiaries: React.FC = () => {
     }
   };
 
+  // Fetch wilayas from backend
+  const fetchWilayas = async () => {
+    try {
+      setLoadingWilayas(true);
+      const wilayasData = await getWilayas();
+      setWilayas(wilayasData || []);
+    } catch (error) {
+      console.error("Failed to fetch wilayas:", error);
+      toast.error("Could not load wilayas list");
+    } finally {
+      setLoadingWilayas(false);
+    }
+  };
+
   useEffect(() => {
     fetchBeneficiaries();
+    fetchWilayas(); // Fetch wilayas when component mounts
   }, []);
 
   const handleVerify = async (id: string) => {
@@ -131,8 +156,20 @@ const Beneficiaries: React.FC = () => {
 
   const handleCreateBeneficiary = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    if (!formData.wilaya) {
+      toast.error("Please select a wilaya");
       return;
     }
 
@@ -144,9 +181,10 @@ const Beneficiaries: React.FC = () => {
         password: formData.password,
         phone: formData.phone,
         address: formData.address,
+        wilaya: formData.wilaya, // Include wilaya in registration
         role: "beneficiary",
         organizationName: formData.organizationName,
-        organizationType: formData.organizationType,
+        organizationType: formData.organizationType || "Association", // Default value
       });
       toast.success("Beneficiary created successfully");
       setShowCreateModal(false);
@@ -155,14 +193,16 @@ const Beneficiaries: React.FC = () => {
         email: "",
         phone: "",
         address: "",
+        wilaya: "",
         organizationName: "",
         organizationType: "",
         password: "",
         confirmPassword: "",
       });
       fetchBeneficiaries();
-    } catch (error) {
-      toast.error("Failed to create beneficiary");
+    } catch (error: any) {
+      console.error("Creation error:", error);
+      toast.error(error?.message || "Failed to create beneficiary");
     } finally {
       setCreatingBeneficiary(false);
     }
@@ -221,44 +261,37 @@ const Beneficiaries: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Bénéficiaires</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Beneficiaries</h1>
           <p className="text-gray-500 mt-1">
-            Gérez les associations et organisations bénéficiaires
+            Manage associations and beneficiary organizations
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={fetchBeneficiaries}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
-          >
-            <FiRefreshCw className="w-4 h-4" />
-            Actualiser
-          </button>
           <button
             onClick={() => setShowCreateModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition"
           >
             <FiPlus className="w-4 h-4" />
-            Ajouter un bénéficiaire
+            Add Beneficiary
           </button>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
-          <p className="text-sm text-gray-500">Total bénéficiaires</p>
+          <p className="text-sm text-gray-500">Total Beneficiaries</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
           <p className="text-sm text-gray-500">Actifs</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
           <p className="text-sm text-gray-500">En attente</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-2xl font-bold text-red-600">{stats.suspended}</p>
           <p className="text-sm text-gray-500">Suspendus</p>
         </div>
@@ -276,16 +309,6 @@ const Beneficiaries: React.FC = () => {
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        >
-          <option value="all">Tous les statuts</option>
-          <option value="active">Actifs</option>
-          <option value="pending">En attente</option>
-          <option value="suspended">Suspendus</option>
-        </select>
       </div>
 
       {/* Table */}
@@ -304,76 +327,59 @@ const Beneficiaries: React.FC = () => {
                   Wilaya
                 </th>
                 <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
-                  Statut
-                </th>
-                <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredBeneficiaries.map((b) => (
-                <tr key={b.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                        <FaHandHoldingHeart className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">{b.name}</p>
-                        <p className="text-xs text-gray-500">{b.phone}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4 text-sm text-gray-600">{b.email}</td>
-                  <td className="p-4 text-gray-600">{b.wilaya || "-"}</td>
-                  <td className="p-4">{getStatusBadge(b.status)}</td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedBeneficiary(b);
-                          setShowModal(true);
-                        }}
-                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition"
-                      >
-                        <FiEye className="w-4 h-4" />
-                      </button>
-                      {b.status === "pending" && (
-                        <button
-                          onClick={() => handleVerify(b.id)}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
-                        >
-                          <FiCheckCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                      {b.status === "active" && (
-                        <button
-                          onClick={() => handleDeactivate(b.id)}
-                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"
-                          title="Suspend this beneficiary"
-                        >
-                          <FiXCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                      {b.status === "suspended" && (
-                        <button
-                          onClick={() => handleActivate(b.id)}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
-                        >
-                          <FiCheckCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(b.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+              {filteredBeneficiaries.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-gray-500">
+                    Aucun bénéficiaire trouvé
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredBeneficiaries.map((b) => (
+                  <tr key={b.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                          <FaHandHoldingHeart className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">{b.name}</p>
+                          <p className="text-xs text-gray-500">{b.phone}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 text-sm text-gray-600">{b.email}</td>
+                    <td className="p-4 text-sm text-gray-600">
+                      {b.wilaya || "-"}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedBeneficiary(b);
+                            setShowModal(true);
+                          }}
+                          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition"
+                          title="View details"
+                        >
+                          <FiEye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(b.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                          title="Delete"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -389,14 +395,14 @@ const Beneficiaries: React.FC = () => {
             className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-100">
+            <div className="p-6 border-b border-gray-100 sticky top-0 bg-white">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold text-gray-800">
                   Créer un nouveau bénéficiaire
                 </h2>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
                   <FiXCircle className="w-5 h-5 text-gray-500" />
                 </button>
@@ -405,7 +411,7 @@ const Beneficiaries: React.FC = () => {
             <form onSubmit={handleCreateBeneficiary} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom de contact
+                  Nom du responsable <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -415,12 +421,13 @@ const Beneficiaries: React.FC = () => {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Nom du responsable"
+                  placeholder="Nom complet du responsable"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -433,9 +440,10 @@ const Beneficiaries: React.FC = () => {
                   placeholder="email@example.com"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Téléphone
+                  Téléphone <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
@@ -445,12 +453,13 @@ const Beneficiaries: React.FC = () => {
                     setFormData({ ...formData, phone: e.target.value })
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="+213..."
+                  placeholder="+213 XXX XX XX XX"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom de l'organisation
+                  Nom de l'organisation <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -463,9 +472,10 @@ const Beneficiaries: React.FC = () => {
                     })
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Nom de l'association"
+                  placeholder="Nom de l'association / organisation"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Type d'organisation
@@ -480,14 +490,43 @@ const Beneficiaries: React.FC = () => {
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="">Sélectionner...</option>
-                  <option value="ONG">ONG</option>
                   <option value="Association">Association</option>
+                  <option value="ONG">person</option>
                   <option value="Fondation">Fondation</option>
-                  <option value="École">École</option>
+                  <option value="gouvernement Organisme">
+                    gouvernement Organisme
+                  </option>
                   <option value="Autre">Autre</option>
                 </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Wilaya <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={formData.wilaya}
+                  onChange={(e) =>
+                    setFormData({ ...formData, wilaya: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  disabled={loadingWilayas}
+                >
+                  <option value="">Sélectionner une wilaya...</option>
+                  {wilayas.map((wilaya) => (
+                    <option key={wilaya.id} value={wilaya.name}>
+                      {wilaya.name}
+                    </option>
+                  ))}
+                </select>
+                {loadingWilayas && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Chargement des wilayas...
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Adresse
@@ -499,12 +538,13 @@ const Beneficiaries: React.FC = () => {
                     setFormData({ ...formData, address: e.target.value })
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Adresse"
+                  placeholder="Adresse complète"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mot de passe
+                  Mot de passe <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -514,12 +554,14 @@ const Beneficiaries: React.FC = () => {
                     setFormData({ ...formData, password: e.target.value })
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="••••••••"
+                  placeholder="Minimum 6 caractères"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirmer le mot de passe
+                  Confirmer le mot de passe{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -532,15 +574,23 @@ const Beneficiaries: React.FC = () => {
                     })
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="••••••••"
+                  placeholder="Confirmer le mot de passe"
                 />
               </div>
+
               <button
                 type="submit"
                 disabled={creatingBeneficiary}
-                className="w-full bg-emerald-600 text-white py-2 rounded-xl hover:bg-emerald-700 transition disabled:opacity-50"
+                className="w-full bg-emerald-600 text-white py-2 rounded-xl hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {creatingBeneficiary ? "Création..." : "Créer le bénéficiaire"}
+                {creatingBeneficiary ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Création...
+                  </span>
+                ) : (
+                  "Créer le bénéficiaire"
+                )}
               </button>
             </form>
           </div>
@@ -557,14 +607,14 @@ const Beneficiaries: React.FC = () => {
             className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-100">
+            <div className="p-6 border-b border-gray-100 sticky top-0 bg-white">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold text-gray-800">
                   Détails du bénéficiaire
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
                   <FiXCircle className="w-5 h-5 text-gray-500" />
                 </button>
@@ -572,8 +622,8 @@ const Beneficiaries: React.FC = () => {
             </div>
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-                <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
-                  <FaHandHoldingHeart className="w-8 h-8 text-blue-600" />
+                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                  <FaHandHoldingHeart className="w-8 h-8 text-emerald-600" />
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-gray-800">
@@ -583,40 +633,71 @@ const Beneficiaries: React.FC = () => {
                     {selectedBeneficiary.beneficiaryProfile?.organizationType ||
                       "Association"}
                   </p>
+                  <div className="mt-1">
+                    {getStatusBadge(selectedBeneficiary.status)}
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
-                  <FiMail className="w-5 h-5 text-gray-400" />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <FiMail className="w-5 h-5 text-emerald-500" />
                   <div>
                     <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-gray-800">{selectedBeneficiary.email}</p>
+                    <p className="text-gray-800 font-medium">
+                      {selectedBeneficiary.email}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <FiPhone className="w-5 h-5 text-gray-400" />
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <FiPhone className="w-5 h-5 text-emerald-500" />
                   <div>
                     <p className="text-xs text-gray-500">Téléphone</p>
-                    <p className="text-gray-800">{selectedBeneficiary.phone}</p>
+                    <p className="text-gray-800 font-medium">
+                      {selectedBeneficiary.phone}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <FiMapPin className="w-5 h-5 text-gray-400" />
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <FiMapPin className="w-5 h-5 text-emerald-500" />
                   <div>
                     <p className="text-xs text-gray-500">Wilaya</p>
-                    <p className="text-gray-800">
+                    <p className="text-gray-800 font-medium">
                       {selectedBeneficiary.wilaya || "-"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <FiCalendar className="w-5 h-5 text-gray-400" />
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <FiMapPin className="w-5 h-5 text-emerald-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Adresse</p>
+                    <p className="text-gray-800 font-medium">
+                      {selectedBeneficiary.address || "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <FiCalendar className="w-5 h-5 text-emerald-500" />
                   <div>
                     <p className="text-xs text-gray-500">Date d'inscription</p>
-                    <p className="text-gray-800">
+                    <p className="text-gray-800 font-medium">
                       {new Date(
                         selectedBeneficiary.createdAt,
-                      ).toLocaleDateString()}
+                      ).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <FiHeart className="w-5 h-5 text-emerald-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Total reçu</p>
+                    <p className="text-gray-800 font-medium">
+                      {selectedBeneficiary.totalReceived || 0} DA
                     </p>
                   </div>
                 </div>
